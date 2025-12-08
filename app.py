@@ -564,6 +564,20 @@ elif page == "Feedback & Validation":
                 rmse = np.sqrt((errors**2).mean())
                 st.metric("User-Reported RMSE", f"{rmse:.3f} eV")
 
+    st.markdown("---")
+    st.subheader("Admin: Download Data")
+
+    if feedback_file.exists():
+        with open(feedback_file, "rb") as f:
+            st.download_button(
+                label="Download All Feedback (CSV)",
+                data=f,
+                file_name="user_feedback.csv",
+                mime="text/csv"
+            )
+    else:
+        st.info("No feedback data available to download yet.")
+
 # ============================================================================
 # PAGE: ABOUT
 # ============================================================================
