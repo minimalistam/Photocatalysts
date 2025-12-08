@@ -1,0 +1,33 @@
+{
+    "pipeline_version": "v1.0-spinel",
+    "model_type": "catboost",
+    "target": "bandgap_value",
+    "n_samples": 62,
+    "features": {
+        "all": [
+            "delta_EN_AB",
+            "t2g_eg_split_proxy",
+            "B_electron_affinity",
+            "synthesis_temperature",
+            "crystallite_size",
+            "lattice_parameter",
+            "synthesis_method",
+            "A_ionization_energy",
+            "bandgap_method",
+            "morphology",
+            "synthesis_time_hours",
+            "A_d_electrons"
+        ],
+        "categorical_indices": [
+            6,
+            8,
+            9
+        ]
+    },
+    "performance": {
+        "oof_r2": 0.659,
+        "oof_rmse_eV": 0.401,
+        "oof_mae_eV": 0.326
+    },
+    "description": "Spinel Oxide (AB2O4) Experimental Bandgap Predictor"
+}
