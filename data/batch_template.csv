@@ -1,6 +1,0 @@
-A_element,A_oxidation,B_element,B_oxidation,X_element,X_oxidation,synthesis_temperature,synthesis_time_hours,annealing_temperature,annealing_time_hours,crystal_structure,sample_form,synthesis_method,morphology,bandgap_type
-Cs,1,Pb,2,I,-1,100,2,0,0,Cubic,Powder,Solution,Unknown,Direct
-FA,1,Pb,2,Br,-1,150,1,100,0.5,Cubic,Film,Spin-Coating,Unknown,Direct
-MA,1,Sn,2,I,-1,80,3,0,0,Cubic,Powder,Solution,Unknown,Direct
-
-

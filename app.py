@@ -415,15 +415,15 @@ elif page == "Batch Prediction":
     st.markdown(f'<p class="main-header">{model_type} Batch Prediction</p>', unsafe_allow_html=True)
     
     # Template Download
-    template_path = Path("data/batch_template.csv")
+    template_path = Path("data/batch_template.xlsx")
     if template_path.exists():
         with open(template_path, "rb") as f:
             st.download_button(
-                label="Download Template (CSV)",
+                label="Download Template (Excel)",
                 data=f,
-                file_name="batch_template.csv",
-                mime="text/csv",
-                help="Use this template to format your data for batch prediction."
+                file_name="batch_template.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Excel template with dropdown menus for categorical features."
             )
     
     # File upload
