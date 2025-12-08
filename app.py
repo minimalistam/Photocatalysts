@@ -414,6 +414,18 @@ if page == "Single Prediction":
 elif page == "Batch Prediction":
     st.markdown(f'<p class="main-header">{model_type} Batch Prediction</p>', unsafe_allow_html=True)
     
+    # Template Download
+    template_path = Path("data/batch_template.csv")
+    if template_path.exists():
+        with open(template_path, "rb") as f:
+            st.download_button(
+                label="Download Template (CSV)",
+                data=f,
+                file_name="batch_template.csv",
+                mime="text/csv",
+                help="Use this template to format your data for batch prediction."
+            )
+    
     # File upload
     uploaded_file = st.file_uploader("Upload CSV/Excel", type=["csv", "xlsx"])
     
