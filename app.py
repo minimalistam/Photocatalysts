@@ -109,7 +109,7 @@ if not check_password():
 # LOAD MODELS (CACHED)
 # ============================================================================
 
-@st.cache_resource
+# @st.cache_resource (Disabled to force reload of new models)
 def load_models():
     """Load all model pipelines."""
     models = {}
