@@ -314,7 +314,8 @@ if page == "Single Prediction":
                 crystal_struct = st.selectbox("Crystal Structure", ["Cubic", "Tetragonal", "Orthorhombic"])
                 sample_form = st.selectbox("Sample Form", ["Powder", "Film", "Single Crystal"])
                 bandgap_type = st.selectbox("Bandgap Type", ["Direct", "Indirect"])
-                phase_purity = "Unknown" # Not used for Perovskite
+                phase_purity = st.selectbox("Phase Purity", ["Pure", "Impure", "Unknown"])
+                # Synthesis Temp is shared below
             else:
                 crystal_struct, sample_form, bandgap_type = "Cubic", "Powder", "Direct"
                 bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])

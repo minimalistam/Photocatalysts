@@ -184,11 +184,7 @@ def compute_physics_features(input_data, elements_data, encoders):
         features['polarizability_ratio_XB'] = np.nan
     
     # Synthesis features
-    features['synthesis_temperature'] = input_data.get('synthesis_temperature', np.nan)
-    features['synthesis_time_hours'] = input_data.get('synthesis_time_hours', np.nan)
-    features['annealing_temperature'] = input_data.get('annealing_temperature', np.nan)
-    features['annealing_time_hours'] = input_data.get('annealing_time_hours', np.nan)
-    features['unit_cell_volume'] = np.nan  # Not provided by user
+    features['synthesis_temperature'] = float(input_data.get('synthesis_temperature', np.nan))
     
     # Categorical features (encode)
     cat_features = {
@@ -196,7 +192,9 @@ def compute_physics_features(input_data, elements_data, encoders):
         'sample_form': input_data.get('sample_form', 'Unknown'),
         'synthesis_method': input_data.get('synthesis_method', 'Unknown'),
         'morphology': input_data.get('morphology', 'Unknown'),
-        'bandgap_type': input_data.get('bandgap_type', 'Unknown')
+        'bandgap_type': input_data.get('bandgap_type', 'Unknown'),
+        'phase_purity': input_data.get('phase_purity', 'Unknown'),
+        'Organic/inorganic': 'Organic' if A_is_organic else 'Inorganic'
     }
     
     for col, value in cat_features.items():
@@ -208,10 +206,67 @@ def compute_physics_features(input_data, elements_data, encoders):
             else:
                 features[col] = -1
         else:
+            # If no encoder, use 0 (or handle as string if CatBoost native)
+            # The manifest says "categorical_handling": "Fill NaN with 'Unknown', then LabelEncode"
+            # But for now we might just pass strings if model supports it, or 0.
+            # Given previous logic used encoders, we stick to that or 0.
             features[col] = 0
+
+    # Explicitly set A_is_organic (already computed)
+    features['A_is_organic'] = A_is_organic
+
+    # Order Columns (EXACTLY as in manifest)
+    ordered_cols = [
+        "bandgap_type",
+        "Organic/inorganic",
+        "crystal_structure",
+        "morphology",
+        "synthesis_method",
+        "synthesis_temperature",
+        "sample_form",
+        "phase_purity",
+        "A_is_organic",
+        "B_ionic_radius_6CN",
+        "B_electronegativity",
+        "B_atomic_mass",
+        "B_ionization_energy",
+        "B_electron_affinity",
+        "X_ionic_radius_6CN",
+        "X_electronegativity",
+        "X_atomic_mass",
+        "X_electron_affinity",
+        "octahedral_factor",
+        "delta_EN_BX",
+        "reduced_mass_BX",
+        "B_d_electrons",
+        "B_is_transition_metal",
+        "B_entropy",
+        "X_entropy",
+        "B_size_variance",
+        "X_size_variance",
+        "B_EN_var",
+        "X_EN_var",
+        "A_electronegativity",
+        "A_atomic_mass",
+        "A_ionization_energy",
+        "delta_EN_AX",
+        "delta_EN_AB",
+        "A_entropy",
+        "A_size_variance",
+        "A_EN_var",
+        "mass_ratio_BX",
+        "polarizability_ratio_XB"
+    ]
     
     # Create DataFrame
     df = pd.DataFrame([features])
+    
+    # Ensure all columns exist (fill 0 or NaN if missing)
+    for col in ordered_cols:
+        if col not in df.columns:
+            df[col] = 0
+            
+    df = df[ordered_cols]
     
     return df
 
