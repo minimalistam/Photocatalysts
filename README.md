@@ -1,150 +1,65 @@
-#🔬 ABX₃ Perovskite Bandgap Predictor
+# 🔬 ABX₃ & Spinel Bandgap Predictor
 
-Interactive Streamlit web app for predicting perovskite bandgaps with SHAP explanations.
+A physics-informed machine learning tool for predicting the optical bandgaps of **Perovskite (ABX₃)** and **Spinel (AB₂O₄)** materials. This tool integrates experimental data with physics-based feature engineering to accelerate the discovery of new photocatalysts and optoelectronic materials.
 
-## 🚀 Quick Start
+## 🌟 Key Features
 
-### 1. Setup
+*   **Multi-Family Support**: Specialized models for both Perovskite and Spinel oxide families.
+*   **Physics-Informed**: Uses features derived from fundamental elemental properties (electronegativity, ionic radius, etc.) rather than just chemical formulas.
+*   **Interpretability**: Includes **SHAP (SHapley Additive exPlanations)** waterfall plots to visualize which features drive each prediction.
+*   **Batch Processing**: Supports bulk predictions via Excel/CSV upload with automated feature computation.
+*   **Uncertainty Quantification**: Provides model uncertainty estimates (RMSE) for every prediction.
 
-```bash
-cd "/Users/amirmahboud/Documents/PhD/Writing Paper/ABX3_Bandgap_Predictor"
+## 🧠 Models
 
-# Install dependencies
-pip install -r requirements.txt
-```
+The application uses **CatBoost Regressor** models trained on curated experimental datasets.
 
-### 2. Copy Trained Models
+### Perovskite (ABX₃)
+*   **Scope**: Inorganic oxides (e.g., Titanates, Ferrites) and Hybrid Organic-Inorganic Halides.
+*   **Performance**:
+    *   **R²**: 0.77
+    *   **RMSE**: 0.32 eV
+    *   **MAE**: 0.19 eV
+*   **Training Data**: ~570 experimental samples.
 
-Copy your trained model files to `models/` directory:
+### Spinel (AB₂O₄)
+*   **Scope**: Cubic, Direct Bandgap Spinels, primarily Aluminates ($MAl_2O_4$) and Ferrites ($MFe_2O_4$).
+*   **Performance**:
+    *   **R²**: 0.71
+    *   **RMSE**: 0.48 eV
+    *   **MAE**: 0.32 eV
+*   **Training Data**: ~187 experimental samples.
 
-```bash
-mkdir models
-cp "/Users/amirmahboud/Documents/SINGLE SHOT/rev2 ml/final-submission/Final - clean/data/models/"* models/
-```
+## 🚀 Usage
 
-**Required files:**
-- `catboost_final.cbm`
-- `feature_manifest.json`
-- `categorical_encoders.pkl`
+### Online Dashboard
+Access the interactive dashboard here:
+**[Launch App](https://minimalistam-photocatalysts-app.streamlit.app)**
 
-### 3. Run App
+### Local Installation
 
-```bash
-streamlit run app.py
-```
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/minimalistam/Photocatalysts.git
+    cd Photocatalysts
+    ```
+2.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+3.  Run the app:
+    ```bash
+    streamlit run app.py
+    ```
 
-App will open at `http://localhost:8501`
+## 📚 Citation
 
----
+If you use this tool in your research, please cite:
 
-## 📂 Project Structure
-
-```
-ABX3_Bandgap_Predictor/
-├── app.py                      # Main Streamlit app
-├── inference_utils.py          # Model loading & prediction
-├── feature_engineering.py      # Auto-compute physics features
-├── element_data.py             # Periodic table data
-├── models/                     # Trained model files (you copy these)
-│   ├── catboost_final.cbm
-│   ├── feature_manifest.json
-│   └── categorical_encoders.pkl
-├── data/
-│   └── batch_template.csv      # Template for batch upload
-├── requirements.txt
-└── README.md
-```
-
----
-
-## 🌐 Deploy to Streamlit Cloud (Public)
-
-### 1. Create GitHub Repository
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: ABX3 Bandgap Predictor"
-git remote add origin https://github.com/YOUR_USERNAME/abx3-bandgap-predictor
-git push -u origin main
-```
-
-### 2. Deploy on Streamlit Cloud
-
-1. Go to [share.streamlit.io](https://share.streamlit.io)
-2. Sign in with GitHub
-3. Click "New app"
-4. Select your repository
-5. Set main file: `app.py`
-6. Click "Deploy"
-
-**Done!** Your app will be live at `https://YOUR_APP_NAME.streamlit.app`
-
----
-
-## 🎯 Features
-
-✅ **Single Prediction**
-- Auto-compute physics features from A-B-X composition
-- SHAP waterfall plot for interpretability
-- Model uncertainty estimates
-
-✅ **Batch Prediction**
-- Upload CSV/Excel with multiple materials
-- Progress tracking
-- Downloadable results
-
-✅ **Model Card**
-- R² = 0.744
-- RMSE = 0.33 eV
-- Trained on 570 materials
-
----
-
-## 📝 Usage in Paper
-
-### Screenshots for Paper
-
-```bash
-# Start app
-streamlit run app.py
-
-# Take screenshots of:
-# 1. Single prediction with SHAP plot
-# 2. Batch prediction interface
-# 3. Model performance card
-```
-
-### Citing the Tool
-
-```
-This work utilized an interactive machine learning tool for 
-bandgap prediction, available at: https://YOUR_APP_URL.streamlit.app
-```
-
----
-
-## ⚠️ Notes
-
-- App requires ~2GB memory (for SHAP calculations)
-- SHAP computation takes ~5-10 seconds per prediction
-- Batch predictions without SHAP are faster
-- All data stays local (nothing sent to external servers)
-
----
+> Mahboud, A. et al. (2025). *Physics-Informed Machine Learning for Bandgap Prediction in Perovskite and Spinel Oxides*. [Journal/Conference Name].
 
 ## 📧 Contact
 
-Amir Mahboud  
-[amir.mahboud@university.edu](mailto:amir.mahboud@university.edu)
-
----
-
-## 🔄 Updates
-
-**v1.0** - Initial release with:
-- CatBoost model
-- SHAP explanations
-- Batch processing
-
-
+**Amir Mahboud**  
+RMIT University  
+[amir.mahboud@student.rmit.edu.au](mailto:amir.mahboud@student.rmit.edu.au)
