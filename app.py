@@ -369,7 +369,11 @@ if page == "Single Prediction":
                         features_df = compute_spinel_features(input_data, ELEMENTS_DATA, encoders)
                     
                     # Predict with SHAP
-                    result = predict_single(model, features_df, manifest, compute_shap=True)
+                    try:
+                        result = predict_single(model, features_df, manifest, compute_shap=True)
+                    except Exception as e:
+                        st.error(f"Prediction Error: {str(e)}")
+                        st.stop()
                     
                     # Display prediction
                     st.success("Prediction Complete")
