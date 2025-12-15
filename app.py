@@ -598,38 +598,35 @@ elif page == "About":
     st.markdown('<p class="main-header">About This Tool</p>', unsafe_allow_html=True)
     
     if current_model_key == 'perovskite':
-        st.markdown("""
+        st.markdown(f"""
         ### Model: CatBoost Regressor (Tuned)
         
+        **Description:**
+        The perovskite model was trained mainly on conventional ABX₃ perovskite structures including both inorganic oxide perovskites (e.g., titanates, ferrites, manganites, and niobates) and hybrid organic-inorganic halide perovskites. Therefore, within these classes, the model demonstrates robust predictive accuracy.
+
         **Training Data:**
-        - **Materials**: ABX₃ Perovskites.
-        - **Dataset Size**: ~1400 samples.
+        - **Samples**: {manifest['n_samples']}
         
-        **Performance Metrics:**
-        - **R² Score**: {perf.get('aggregated_r2', 0):.3f}
-        - **RMSE**: {perf.get('aggregated_rmse_eV', 0):.3f} eV
-        - **MAE**: {perf.get('aggregated_mae_eV', 0):.3f} eV
-        
+        **Performance:**
+        | Model | R² | RMSE (eV) | MAE (eV) |
+        | :--- | :--- | :--- | :--- |
+        | CatBoost - Tuned | {perf.get('aggregated_r2', 0):.2f} | {perf.get('aggregated_rmse_eV', 0):.2f} | {perf.get('aggregated_mae_eV', 0):.2f} |
         """)
         
     else: # Spinel
-        st.markdown("""
+        st.markdown(f"""
         ### Model: CatBoost Regressor (Optimized)
         
-        **Training Data:**
-        - **Materials**: Cubic, Direct Bandgap Spinels ($AB_2O_4$).
-        - **Model trained on**: 
-            - Aluminates ($MAl_2O_4$)
-            - Ferrites ($MFe_2O_4$)
-            - Chromites ($MCr_2O_4$)
-            - Cobaltites ($MCo_2O_4$)
+        **Description:**
+        This model was mainly trained on Ferrites ($MFe_2O_4$) and Aluminates ($MAl_2O_4$). As a result, the model shows robust predictive performance within these classes of materials.
         
-        **Performance Metrics:**
-        - **R² Score**: ~0.62 (Peak ~0.70)
-        - **RMSE**: ~0.45 eV
-        - **MAE**: ~0.35 eV
-        - **Reliability**: Error < 0.20 eV for standard families.
-
+        **Training Data:**
+        - **Samples**: {manifest['n_samples']}
+        
+        **Performance:**
+        | Model | R² | RMSE (eV) | MAE (eV) |
+        | :--- | :--- | :--- | :--- |
+        | CatBoost - Tuned | {perf.get('aggregated_r2', 0):.2f} | {perf.get('aggregated_rmse_eV', 0):.2f} | {perf.get('aggregated_mae_eV', 0):.2f} |
         """)
     
     st.markdown("---")
