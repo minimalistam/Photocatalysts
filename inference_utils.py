@@ -179,7 +179,7 @@ def predict_batch(df_input, model, manifest, encoders, elements_data, progress_c
             results.append({
                 'Material': f"{row.get('A_element', 'X')}{row.get('B_element', 'Y')}{row.get('X_element', 'Z')}₃",
                 'Predicted_Bandgap_eV': result['prediction'],
-                'Model_Uncertainty_eV': manifest['performance']['oof_rmse_eV'],
+                'Model_Uncertainty_eV': manifest['performance'].get('aggregated_rmse_eV', 0),
                 **input_data
             })
             

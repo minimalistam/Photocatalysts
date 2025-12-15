@@ -176,10 +176,10 @@ with st.sidebar:
     
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("R²", f"{perf['oof_r2']:.3f}")
-        st.metric("RMSE", f"{perf['oof_rmse_eV']:.3f} eV")
+        st.metric("R²", f"{perf.get('aggregated_r2', 0):.3f}")
+        st.metric("RMSE", f"{perf.get('aggregated_rmse_eV', 0):.3f} eV")
     with col2:
-        st.metric("MAE", f"{perf['oof_mae_eV']:.3f} eV")
+        st.metric("MAE", f"{perf.get('aggregated_mae_eV', 0):.3f} eV")
         st.metric("Samples", manifest['n_samples'])
     
     st.caption(f"Version: {manifest['pipeline_version']}")
@@ -375,7 +375,7 @@ if page == "Single Prediction":
                     st.metric(
                         label="Predicted Bandgap",
                         value=f"{result['prediction']:.3f} eV",
-                        delta=f"±{perf['oof_rmse_eV']:.3f} eV",
+                        delta=f"±{perf.get('aggregated_rmse_eV', 0):.3f} eV",
                         delta_color="off"
                     )
                     
@@ -394,7 +394,7 @@ if page == "Single Prediction":
                     result_df = pd.DataFrame([{
                         'Material': f"{A_elem}{B_elem}{X_elem}₃" if current_model_key == 'perovskite' else f"{A_elem}{B_elem}₂O₄",
                         'Predicted_Bandgap_eV': result['prediction'],
-                        'Model_Uncertainty_eV': perf['oof_rmse_eV'],
+                        'Model_Uncertainty_eV': perf.get('aggregated_rmse_eV', 0),
                         **input_data
                     }])
                     
@@ -606,9 +606,9 @@ elif page == "About":
         - **Dataset Size**: ~1400 samples.
         
         **Performance Metrics:**
-        - **R² Score**: 0.735
-        - **RMSE**: 0.328 eV
-        - **MAE**: 0.205 eV
+        - **R² Score**: {perf.get('aggregated_r2', 0):.3f}
+        - **RMSE**: {perf.get('aggregated_rmse_eV', 0):.3f} eV
+        - **MAE**: {perf.get('aggregated_mae_eV', 0):.3f} eV
         
         """)
         
