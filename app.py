@@ -314,9 +314,11 @@ if page == "Single Prediction":
                 crystal_struct = st.selectbox("Crystal Structure", ["Cubic", "Tetragonal", "Orthorhombic"])
                 sample_form = st.selectbox("Sample Form", ["Powder", "Film", "Single Crystal"])
                 bandgap_type = st.selectbox("Bandgap Type", ["Direct", "Indirect"])
+                phase_purity = "Unknown" # Not used for Perovskite
             else:
                 crystal_struct, sample_form, bandgap_type = "Cubic", "Powder", "Direct"
                 bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])
+                phase_purity = st.selectbox("Phase Purity", ["Pure", "Impure", "Unknown"])
 
         st.markdown("---")
         
@@ -344,7 +346,8 @@ if page == "Single Prediction":
                     'sample_form': sample_form,
                     'synthesis_method': synth_method,
                     'morphology': morphology,
-                    'bandgap_type': bandgap_type
+                    'bandgap_type': bandgap_type,
+                    'phase_purity': phase_purity
                 }
                 
                 if current_model_key == 'spinel':

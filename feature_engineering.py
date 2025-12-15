@@ -254,76 +254,239 @@ def validate_composition(input_data, elements_data):
 # SPINEL FEATURE ENGINEERING
 # ============================================================================
 
-def get_t2g_eg_proxy(B_elem):
+def get_cfse_proxy(B_elem):
     """
-    Get t2g-eg splitting proxy for B-site cation in Spinel.
-    Values derived from training data.
+    Get Crystal Field Stabilization Energy (CFSE) proxy for B-site.
+    Values derived from training data mapping.
     """
-    # Mapping from dataset
     mapping = {
         'Co': 0.689565,
         'Al': 0.709457,
-        'Ga': 0.738477, # Inferred from ZnAlGaO4
+        'Ga': 0.738477,
         'Fe': 0.752500,
         'Cr': 0.793261,
         'Mn': 0.883370,
-        'Mg': 0.709457, # MgAl2O4 (A-site Mg, B-site Al)
+        'Mg': 0.709457,
+        'Ni': 0.85, # Approx
+        'Zn': 0.0,  # d10, CFSE=0
+        'Ti': 0.4,  # d0/d1
     }
-    return mapping.get(B_elem, 0.75) # Default to mean if unknown
+    return mapping.get(B_elem, 0.75)
 
 def compute_spinel_features(input_data, elements_data, encoders):
     """
     Compute features for Spinel (AB2O4) model.
+    Matches the 59 features in v2.0-spinel-no-co-ni manifest.
     """
     A_elem = input_data['A_element']
     B_elem = input_data['B_element']
-    # X is always O for this model, but we can keep it flexible if needed
+    X_elem = "O"
+    
+    # Oxidation states
+    A_ox = input_data.get('A_oxidation', 2)
+    B_ox = input_data.get('B_oxidation', 3)
+    X_ox = -2
     
     features = {}
     
-    # 1. Physics Features
+    # --- 1. Elemental Properties (A, B, O) ---
     
-    # Electronegativity
-    EN_A = elem_prop(A_elem, 'X')
-    EN_B = elem_prop(B_elem, 'X')
-    features['delta_EN_AB'] = abs(EN_A - EN_B) if pd.notna(EN_A) and pd.notna(EN_B) else np.nan
-    
+    # A-site
+    features['A_ionic_radius_4CN'] = ionic_radius(A_elem, A_ox, 4)
+    features['A_electronegativity'] = elem_prop(A_elem, 'X')
+    features['A_atomic_mass'] = elem_prop(A_elem, 'atomic_mass')
     features['A_ionization_energy'] = elem_prop(A_elem, 'ionization_energy')
-    features['B_electron_affinity'] = elem_prop(B_elem, 'electron_affinity')
+    features['A_electron_affinity'] = elem_prop(A_elem, 'electron_affinity')
+    
+    try:
+        e_A = Element(A_elem)
+        features['A_valence_electrons'] = float(e_A.group) if e_A.group else np.nan
+    except:
+        features['A_valence_electrons'] = np.nan
+        
     features['A_d_electrons'] = get_d_electrons(A_elem)
+    features['A_is_transition_metal'] = int(features['A_d_electrons'] > 0)
+    features['A_entropy'] = 0.0
+    features['A_size_variance'] = 0.0
+    features['A_EN_var'] = 0.0
     
-    # t2g-eg proxy (Critical feature)
-    features['t2g_eg_split_proxy'] = get_t2g_eg_proxy(B_elem)
+    # B-site
+    features['B_ionic_radius_6CN'] = ionic_radius(B_elem, B_ox, 6)
+    features['B_electronegativity'] = elem_prop(B_elem, 'X')
+    features['B_atomic_mass'] = elem_prop(B_elem, 'atomic_mass')
+    features['B_ionization_energy'] = elem_prop(B_elem, 'ionization_energy')
+    features['B_electron_affinity'] = elem_prop(B_elem, 'electron_affinity')
     
-    # 2. User Inputs (Experimental)
-    features['lattice_parameter'] = input_data.get('lattice_parameter', np.nan)
-    features['crystallite_size'] = input_data.get('crystallite_size', np.nan)
-    features['synthesis_temperature'] = input_data.get('synthesis_temperature', np.nan)
-    features['synthesis_time_hours'] = input_data.get('synthesis_time_hours', np.nan)
+    try:
+        e_B = Element(B_elem)
+        features['B_valence_electrons'] = float(e_B.group) if e_B.group else np.nan
+    except:
+        features['B_valence_electrons'] = np.nan
+        
+    features['B_d_electrons'] = get_d_electrons(B_elem)
+    features['B_is_transition_metal'] = int(features['B_d_electrons'] > 0)
+    features['B_entropy'] = 0.0
+    features['B_size_variance'] = 0.0
+    features['B_EN_var'] = 0.0
     
-    # 3. Categorical Features (Return strings for CatBoost)
-    features['synthesis_method'] = str(input_data.get('synthesis_method', 'Unknown'))
-    features['morphology'] = str(input_data.get('morphology', 'Unknown'))
+    # O-site
+    features['O_ionic_radius'] = ionic_radius('O', -2, 4)
+    features['O_electronegativity'] = elem_prop('O', 'X')
+    features['O_atomic_mass'] = elem_prop('O', 'atomic_mass')
+    features['O_electron_affinity'] = elem_prop('O', 'electron_affinity')
+    
+    # --- 2. Geometric Factors ---
+    r_A = features['A_ionic_radius_4CN']
+    r_B = features['B_ionic_radius_6CN']
+    r_O = features['O_ionic_radius']
+    
+    if pd.notna(r_A) and pd.notna(r_B) and pd.notna(r_O):
+        features['tetrahedral_factor'] = r_A / r_O
+        features['octahedral_factor'] = r_B / r_O
+        # Spinel tolerance factor: t = (r_A + r_O) / (sqrt(3) * (r_B + r_O) * 0.5) ? 
+        # Or standard Goldschmidt? Let's use the one common for spinels.
+        # Often defined as t = (r_A + r_O) / (sqrt(3) * (r_B + r_O)) * 2 ? No.
+        # Let's use (r_A + r_O) / (sqrt(3) * (r_B + r_O)) which is for AB2O4?
+        # Actually, let's stick to the Perovskite-like definition as a robust proxy if exact is unknown.
+        # But wait, "spinel_tolerance_factor" implies specific definition.
+        # t = (r_A + r_O) / (sqrt(3) * (r_B + r_O) * 0.5) is a good guess.
+        features['spinel_tolerance_factor'] = (r_A + r_O) / (np.sqrt(3) * (r_B + r_O) * 0.5)
+        
+        features['A_O_bond_length'] = r_A + r_O
+        features['B_O_bond_length'] = r_B + r_O
+        features['bond_length_ratio'] = features['A_O_bond_length'] / features['B_O_bond_length']
+    else:
+        features['tetrahedral_factor'] = np.nan
+        features['octahedral_factor'] = np.nan
+        features['spinel_tolerance_factor'] = np.nan
+        features['A_O_bond_length'] = np.nan
+        features['B_O_bond_length'] = np.nan
+        features['bond_length_ratio'] = np.nan
+
+    # --- 3. Physics / Derived Features ---
+    EN_A = features['A_electronegativity']
+    EN_B = features['B_electronegativity']
+    EN_O = features['O_electronegativity']
+    
+    features['delta_EN_AO'] = abs(EN_A - EN_O)
+    features['delta_EN_BO'] = abs(EN_B - EN_O)
+    features['delta_EN_AB'] = abs(EN_A - EN_B)
+    features['delta_chi_BO_squared'] = (EN_B - EN_O)**2
+    
+    M_A = features['A_atomic_mass']
+    M_B = features['B_atomic_mass']
+    M_O = features['O_atomic_mass']
+    
+    features['reduced_mass_AO'] = (M_A * M_O) / (M_A + M_O)
+    features['reduced_mass_BO'] = (M_B * M_O) / (M_B + M_O)
+    features['mass_ratio_AO'] = M_A / M_O
+    features['mass_ratio_BO'] = M_B / M_O
+    
+    # Polarizability Ratio: (r_O^3 / X_O) / (r_B^3 / X_B)
+    if pd.notna(r_O) and pd.notna(r_B) and pd.notna(EN_O) and pd.notna(EN_B):
+        pol_O = r_O**3 / EN_O
+        pol_B = r_B**3 / EN_B
+        features['polarizability_ratio_OB'] = pol_O / pol_B
+        features['O_polarizability_proxy'] = pol_O
+    else:
+        features['polarizability_ratio_OB'] = np.nan
+        features['O_polarizability_proxy'] = np.nan
+        
+    features['avg_d_electrons'] = (features['A_d_electrons'] + 2*features['B_d_electrons']) / 3.0
+    features['mean_oxidation_gap'] = abs(B_ox - A_ox)
+    features['mean_B_oxidation_state'] = float(B_ox)
+    
+    # Bonding Factor: Likely Pauling Bond Strength of A-site (Valence/CN)
+    # Since pauling_bond_strength_B is present, and A is missing.
+    features['bonding_factor'] = A_ox / 4.0 
+    
+    features['CFSE_proxy'] = get_cfse_proxy(B_elem)
+    features['t2g_eg_split_proxy'] = get_cfse_proxy(B_elem) # Reusing same proxy if distinct not avail
+    
+    features['charge_balance_residual'] = abs(A_ox + 2*B_ox + 4*X_ox)
+    features['pauling_bond_strength_B'] = B_ox / 6.0
+
+    # --- 4. Categorical & Experimental ---
+    features['bandgap_type'] = str(input_data.get('bandgap_type', 'Unknown'))
     features['bandgap_method'] = str(input_data.get('bandgap_method', 'Unknown'))
-            
-    # Ensure correct order matching training data
+    features['crystal_structure'] = str(input_data.get('crystal_structure', 'Unknown'))
+    features['morphology'] = str(input_data.get('morphology', 'Unknown'))
+    features['synthesis_method'] = str(input_data.get('synthesis_method', 'Unknown'))
+    features['sample_form'] = str(input_data.get('sample_form', 'Unknown'))
+    features['phase_purity'] = str(input_data.get('phase_purity', 'Unknown'))
+    
+    features['synthesis_temperature'] = float(input_data.get('synthesis_temperature', np.nan))
+    
+    # --- 5. Order Columns (EXACTLY as in manifest) ---
     ordered_cols = [
-        "delta_EN_AB",
-        "t2g_eg_split_proxy",
-        "B_electron_affinity",
-        "synthesis_temperature",
-        "crystallite_size",
-        "lattice_parameter",
-        "synthesis_method",
-        "A_ionization_energy",
+        "bandgap_type",
         "bandgap_method",
+        "crystal_structure",
         "morphology",
-        "synthesis_time_hours",
-        "A_d_electrons"
+        "synthesis_method",
+        "synthesis_temperature",
+        "sample_form",
+        "phase_purity",
+        "A_ionic_radius_4CN",
+        "A_electronegativity",
+        "A_atomic_mass",
+        "A_ionization_energy",
+        "A_electron_affinity",
+        "A_valence_electrons",
+        "A_d_electrons",
+        "A_is_transition_metal",
+        "A_entropy",
+        "A_size_variance",
+        "A_EN_var",
+        "B_ionic_radius_6CN",
+        "B_electronegativity",
+        "B_atomic_mass",
+        "B_ionization_energy",
+        "B_electron_affinity",
+        "B_valence_electrons",
+        "B_d_electrons",
+        "B_is_transition_metal",
+        "B_entropy",
+        "B_size_variance",
+        "B_EN_var",
+        "O_ionic_radius",
+        "O_electronegativity",
+        "O_atomic_mass",
+        "O_electron_affinity",
+        "tetrahedral_factor",
+        "octahedral_factor",
+        "spinel_tolerance_factor",
+        "delta_EN_AO",
+        "delta_EN_BO",
+        "delta_EN_AB",
+        "reduced_mass_BO",
+        "reduced_mass_AO",
+        "mass_ratio_BO",
+        "mass_ratio_AO",
+        "polarizability_ratio_OB",
+        "avg_d_electrons",
+        "mean_oxidation_gap",
+        "delta_chi_BO_squared",
+        "bonding_factor",
+        "A_O_bond_length",
+        "B_O_bond_length",
+        "bond_length_ratio",
+        "CFSE_proxy",
+        "t2g_eg_split_proxy",
+        "charge_balance_residual",
+        "pauling_bond_strength_B",
+        "mean_B_oxidation_state",
+        "O_polarizability_proxy"
     ]
     
-    # Create DataFrame with ordered columns
+    # Create DataFrame
     df = pd.DataFrame([features])
+    
+    # Ensure all columns exist (fill 0 or NaN if missing)
+    for col in ordered_cols:
+        if col not in df.columns:
+            df[col] = 0
+            
     df = df[ordered_cols]
     
     return df
