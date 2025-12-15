@@ -267,8 +267,7 @@ def get_t2g_eg_proxy(B_elem):
         'Fe': 0.752500,
         'Cr': 0.793261,
         'Mn': 0.883370,
-        'Mg': 0.709457, # MgAl2O4 (A-site Mg, B-site Al) - wait, this function takes B_elem
-        # If B is Mg? Unlikely for 2-3 spinel.
+        'Mg': 0.709457, # MgAl2O4 (A-site Mg, B-site Al)
     }
     return mapping.get(B_elem, 0.75) # Default to mean if unknown
 
