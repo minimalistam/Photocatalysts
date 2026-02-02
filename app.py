@@ -302,12 +302,10 @@ if page == "Single Prediction":
             c1, c2 = st.columns(2)
             with c1:
                 # Use value=None to allow empty
-                synth_temp = st.number_input("Synthesis Temperature (°C)", value=None, step=10.0, placeholder="Leave blank if unknown")
+                synth_temp = st.number_input("Synthesis Temperature (°C)", value=None, step=10.0, placeholder="blank")
             with c2:
-                synth_time = st.number_input("Synthesis Time (hours)", value=None, step=0.5, placeholder="Leave blank if unknown")
+                synth_time = st.number_input("Synthesis Time (hours)", value=None, step=0.5, placeholder="blank")
 
-        # Categorical
-        with st.expander("Method & Form", expanded=False):
             if current_model_key == 'perovskite':
                  # Strict User Lists
                  
@@ -319,7 +317,7 @@ if page == "Single Prediction":
                      "templated synthesis", "vapor-assisted", "thin-film deposition", "vapor-phase",
                      "sol-gel", "mechanochemical", "coprecipitation", "sonochemical", "Blank"
                  ]
-                 synth_method = st.selectbox("Synthesis Method", s_methods, index=len(s_methods)-1) # Default to Blank? Or first? User listed Blank last.
+                 synth_method = st.selectbox("Synthesis Method", s_methods, index=len(s_methods)-1) # Default to Blank
                  
                  # Crystal Structure
                  # cubic, orthorhombic, tetragonal, hexagonal, trigonal, rhombohedral, monoclinic, mixed-phase, triclinic, Blank
@@ -336,19 +334,15 @@ if page == "Single Prediction":
                  
                  # Bandgap Type
                  # Direct, Indirect, Blank
-                 bg_types = ["Direct", "Indirect", "Blank"] # User used capitalized Direct/Indirect in request
+                 bg_types = ["Direct", "Indirect", "Blank"] 
                  bandgap_type = st.selectbox("Bandgap Type", bg_types, index=2)
-                 
-                 # Handle "Blank" -> None/Unknown mapping
-                 # Map "Blank" to "Unknown" or np.nan depending on what model expects.
-                 # Model expects "Unknown" for encoded categories usually (from previous steps).
                  
                  # Not used:
                  morphology = "Unknown"
                  phase_purity = "Unknown"
 
             else:
-                # Spinel defaults (unchanged for now or simplified)
+                # Spinel defaults
                 synth_method = st.selectbox("Synthesis Method", ["Unknown", "Solution", "Solid-State", "Combustion", "Hydrothermal", "Sol-Gel", "Co-precipitation"], index=0)
                 morphology = st.selectbox("Morphology", ["Unknown", "Nanoparticles", "Bulk", "Film", "Spherical", "Agglomerated"], index=0)
                 
