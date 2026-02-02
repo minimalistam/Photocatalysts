@@ -173,7 +173,7 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigation",
-        ["Single Prediction", "Batch Prediction", "Feedback & Validation", "About"],
+        ["Single Prediction", "Batch Prediction", "About"],
         label_visibility="collapsed"
     )
     
@@ -530,118 +530,7 @@ elif page == "Batch Prediction":
 # PAGE: FEEDBACK & VALIDATION
 # ============================================================================
 
-elif page == "Feedback & Validation":
-    st.markdown('<p class="main-header">User Feedback & Experimental Validation</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Submit experimental results to improve model accuracy</p>', unsafe_allow_html=True)
-    
-    st.markdown(f"""
-    **Help us improve the {model_type} model!** 
-    
-    If you have experimentally measured bandgaps for materials you've predicted, 
-    please submit them here. Your data will be used to retrain and improve the model.
-    """)
-    
-    st.markdown("---")
-    
-    with st.form("feedback_form"):
-        st.subheader("Material Information")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fb_material = st.text_input("Material Formula", 
-                                       help="Full chemical formula (e.g., CsPbI3 or MgAl2O4)")
-            fb_A = st.text_input("A-site element")
-            fb_B = st.text_input("B-site element")
-            if current_model_key == 'perovskite':
-                fb_X = st.text_input("X-site element")
-            else:
-                fb_X = "O" # Spinel always Oxide for now
-            
-        with col2:
-            fb_predicted = st.number_input("Predicted Bandgap (eV)", 
-                                          min_value=0.0, max_value=10.0, 
-                                          value=0.0, step=0.01)
-            fb_experimental = st.number_input("Experimental Bandgap (eV)", 
-                                             min_value=0.0, max_value=10.0, 
-                                             value=0.0, step=0.01)
-        
-        st.subheader("Additional Information (Optional)")
-        fb_synthesis = st.text_area("Synthesis Details")
-        fb_notes = st.text_area("Notes or Comments")
-        fb_email = st.text_input("Email (optional, for follow-up)")
-        
-        submitted = st.form_submit_button("Submit Feedback", type="primary")
-        
-        if submitted:
-            if fb_material and fb_experimental > 0:
-                # Save to CSV
-                feedback_data = {
-                    'timestamp': datetime.now().isoformat(),
-                    'model_type': model_type,
-                    'material': fb_material,
-                    'A_element': fb_A,
-                    'B_element': fb_B,
-                    'X_element': fb_X,
-                    'predicted_bandgap_eV': fb_predicted,
-                    'experimental_bandgap_eV': fb_experimental,
-                    'synthesis_details': fb_synthesis,
-                    'notes': fb_notes,
-                    'email': fb_email
-                }
-                
-                # Append to feedback file
-                feedback_file = Path('data/user_feedback.csv')
-                feedback_file.parent.mkdir(exist_ok=True)
-                
-                df_feedback = pd.DataFrame([feedback_data])
-                
-                if feedback_file.exists():
-                    df_existing = pd.read_csv(feedback_file)
-                    df_feedback = pd.concat([df_existing, df_feedback], ignore_index=True)
-                
-                df_feedback.to_csv(feedback_file, index=False)
-                
-                st.success("Thank you! Your feedback has been recorded.")
-                st.info(f"Total submissions: {len(df_feedback)}")
-            else:
-                st.error("Please provide at least material formula and experimental bandgap.")
-    
-    st.markdown("---")
-    
-    # Show statistics if feedback exists
-    feedback_file = Path('data/user_feedback.csv')
-    if feedback_file.exists():
-        df_feedback = pd.read_csv(feedback_file)
-        
-        st.subheader("Feedback Statistics")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total Submissions", len(df_feedback))
-        with col2:
-            if 'experimental_bandgap_eV' in df_feedback.columns:
-                errors = df_feedback['predicted_bandgap_eV'] - df_feedback['experimental_bandgap_eV']
-                mae = np.abs(errors).mean()
-                st.metric("User-Reported MAE", f"{mae:.3f} eV")
-        with col3:
-            if 'experimental_bandgap_eV' in df_feedback.columns:
-                rmse = np.sqrt((errors**2).mean())
-                st.metric("User-Reported RMSE", f"{rmse:.3f} eV")
 
-    st.markdown("---")
-    st.subheader("Admin: Download Data")
-
-    if feedback_file.exists():
-        with open(feedback_file, "rb") as f:
-            st.download_button(
-                label="Download All Feedback (CSV)",
-                data=f,
-                file_name="user_feedback.csv",
-                mime="text/csv"
-            )
-    else:
-        st.info("No feedback data available to download yet.")
 
 # ============================================================================
 # PAGE: ABOUT
@@ -684,9 +573,7 @@ elif page == "About":
     
     st.markdown("---")
     
-    # Technical details
-    with st.expander("Technical Details (Feature Manifest)"):
-        st.json(manifest, expanded=False)
+
 
 # ============================================================================
 # FOOTER
