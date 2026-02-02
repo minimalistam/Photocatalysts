@@ -303,18 +303,41 @@ if page == "Single Prediction":
             synth_temp = st.number_input("Synthesis Temperature (°C)", value=600.0, step=10.0)
         
         # Categorical
-        with st.expander("Method & Morphology", expanded=False):
-            synth_method = st.selectbox("Synthesis Method", 
-                ["Unknown", "Solution", "Solid-State", "Combustion", "Hydrothermal", "Sol-Gel", "Co-precipitation"])
-            morphology = st.selectbox("Morphology", 
-                ["Unknown", "Nanoparticles", "Bulk", "Film", "Spherical", "Agglomerated"])
+        with st.expander("Method & Form", expanded=False):
+            # Synthesis Method (Top common options + others)
+            # From training data: ['coprecipitation', 'hydrothermal', 'mechanochemical', 'microwave-assisted', 'post-synthesis modification', 'sol-gel', 'solid-state', 'solution-based', 'solution-based (etching)', 'solution-based (hot-injection)', 'solvothermal', 'sonochemical', 'templated synthesis', 'thin-film deposition', 'vapor-assisted', 'vapor-phase']
             
+            synth_opts = ["solution-based", "thin-film deposition", "solid-state", "mechanochemical", 
+                          "solution-based (hot-injection)", "vapor-phase", "sol-gel", "hydrothermal", 
+                          "coprecipitation", "Other"]
+            
+            synth_method = st.selectbox("Synthesis Method", synth_opts)
+            if synth_method == "Other":
+                 synth_method = "unknown" # Fallback
+            
+            # Morphology NOT used in Perovskite model (Checked manifest)
+            morphology = "Unknown" 
+            if current_model_key == 'spinel':
+                 # Spinel might use it? Let's check Spinel manifest later or just keep generic for Spinel
+                 # For now, let's just accept morphology is likely not key for Spinel either if ignored before?
+                 # Actually, let's keep it simple. If Perovskite doesn't use it, we hide it for Perovskite.
+                 morphology_spinel = st.selectbox("Morphology (Spinel Only)", ["Nanoparticles", "Bulk", "Film", "Spherical", "Unknown"])
+                 morphology = morphology_spinel
+
             if current_model_key == 'perovskite':
-                crystal_struct = st.selectbox("Crystal Structure", ["Cubic", "Tetragonal", "Orthorhombic"])
-                sample_form = st.selectbox("Sample Form", ["Powder", "Film", "Single Crystal"])
-                bandgap_type = st.selectbox("Bandgap Type", ["Direct", "Indirect"])
-                phase_purity = st.selectbox("Phase Purity", ["Pure", "Impure", "Unknown"])
-                # Synthesis Temp is shared below
+                # Crystal Structure: ['cubic', 'hexagonal', 'mixed-phase', 'monoclinic', 'orthorhombic', 'rhombohedral', 'tetragonal', 'triclinic', 'trigonal']
+                cryst_opts = ["cubic", "tetragonal", "orthorhombic", "hexagonal", "monoclinic", "rhombohedral", "triclinic", "trigonal", "mixed-phase"]
+                crystal_struct = st.selectbox("Crystal Structure", cryst_opts)
+                
+                # Sample Form: ['bulk', 'composite', 'crystal', 'film', 'mixed', 'nano', 'powder']
+                form_opts = ["film", "nano", "powder", "crystal", "bulk", "mixed"]
+                sample_form = st.selectbox("Sample Form", form_opts)
+                
+                bandgap_type = st.selectbox("Bandgap Type", ["direct", "indirect"])
+                
+                # Phase Purity NOT used in Perovskite model
+                phase_purity = "Unknown"
+                
             else:
                 crystal_struct, sample_form, bandgap_type = "Cubic", "Powder", "Direct"
                 bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])
