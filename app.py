@@ -297,51 +297,68 @@ if page == "Single Prediction":
         st.markdown("---")
         
         # Synthesis parameters
-        with st.expander("Synthesis Conditions (Required)", expanded=True):
+        with st.expander("Synthesis Conditions", expanded=True):
+            # Allow blank inputs for Temperature and Time
+            c1, c2 = st.columns(2)
+            with c1:
+                # Use value=None to allow empty
+                synth_temp = st.number_input("Synthesis Temperature (°C)", value=None, step=10.0, placeholder="Leave blank if unknown")
+            with c2:
+                synth_time = st.number_input("Synthesis Time (hours)", value=None, step=0.5, placeholder="Leave blank if unknown")
 
-            
-            synth_temp = st.number_input("Synthesis Temperature (°C)", value=600.0, step=10.0)
-        
         # Categorical
         with st.expander("Method & Form", expanded=False):
-            # Synthesis Method (Top common options + others)
-            # From training data: ['coprecipitation', 'hydrothermal', 'mechanochemical', 'microwave-assisted', 'post-synthesis modification', 'sol-gel', 'solid-state', 'solution-based', 'solution-based (etching)', 'solution-based (hot-injection)', 'solvothermal', 'sonochemical', 'templated synthesis', 'thin-film deposition', 'vapor-assisted', 'vapor-phase']
-            
-            synth_opts = ["solution-based", "thin-film deposition", "solid-state", "mechanochemical", 
-                          "solution-based (hot-injection)", "vapor-phase", "sol-gel", "hydrothermal", 
-                          "coprecipitation", "Other"]
-            
-            synth_method = st.selectbox("Synthesis Method", synth_opts)
-            if synth_method == "Other":
-                 synth_method = "unknown" # Fallback
-            
-            # Morphology NOT used in Perovskite model (Checked manifest)
-            morphology = "Unknown" 
-            if current_model_key == 'spinel':
-                 # Spinel might use it? Let's check Spinel manifest later or just keep generic for Spinel
-                 # For now, let's just accept morphology is likely not key for Spinel either if ignored before?
-                 # Actually, let's keep it simple. If Perovskite doesn't use it, we hide it for Perovskite.
-                 morphology_spinel = st.selectbox("Morphology (Spinel Only)", ["Nanoparticles", "Bulk", "Film", "Spherical", "Unknown"])
-                 morphology = morphology_spinel
-
             if current_model_key == 'perovskite':
-                # Crystal Structure: ['cubic', 'hexagonal', 'mixed-phase', 'monoclinic', 'orthorhombic', 'rhombohedral', 'tetragonal', 'triclinic', 'trigonal']
-                cryst_opts = ["cubic", "tetragonal", "orthorhombic", "hexagonal", "monoclinic", "rhombohedral", "triclinic", "trigonal", "mixed-phase"]
-                crystal_struct = st.selectbox("Crystal Structure", cryst_opts)
-                
-                # Sample Form: ['bulk', 'composite', 'crystal', 'film', 'mixed', 'nano', 'powder']
-                form_opts = ["film", "nano", "powder", "crystal", "bulk", "mixed"]
-                sample_form = st.selectbox("Sample Form", form_opts)
-                
-                bandgap_type = st.selectbox("Bandgap Type", ["direct", "indirect"])
-                
-                # Phase Purity NOT used in Perovskite model
-                phase_purity = "Unknown"
-                
+                 # Strict User Lists
+                 
+                 # Synthesis Method
+                 # solution-based (hot-injection), solution-based, solid-state, post-synthesis modification, hydrothermal, solvothermal, microwave-assisted, solution-based (etching), templated synthesis, vapor-assisted, thin-film deposition, vapor-phase, sol-gel, mechanochemical, coprecipitation, sonochemical, Blank
+                 s_methods = [
+                     "solution-based (hot-injection)", "solution-based", "solid-state", "post-synthesis modification",
+                     "hydrothermal", "solvothermal", "microwave-assisted", "solution-based (etching)",
+                     "templated synthesis", "vapor-assisted", "thin-film deposition", "vapor-phase",
+                     "sol-gel", "mechanochemical", "coprecipitation", "sonochemical", "Blank"
+                 ]
+                 synth_method = st.selectbox("Synthesis Method", s_methods, index=len(s_methods)-1) # Default to Blank? Or first? User listed Blank last.
+                 
+                 # Crystal Structure
+                 # cubic, orthorhombic, tetragonal, hexagonal, trigonal, rhombohedral, monoclinic, mixed-phase, triclinic, Blank
+                 c_structs = [
+                     "cubic", "orthorhombic", "tetragonal", "hexagonal", "trigonal", 
+                     "rhombohedral", "monoclinic", "mixed-phase", "triclinic", "Blank"
+                 ]
+                 crystal_struct = st.selectbox("Crystal Structure", c_structs, index=len(c_structs)-1)
+
+                 # Sample Form
+                 # nano, powder, crystal, film, bulk, mixed, composite, Blank
+                 s_forms = ["nano", "powder", "crystal", "film", "bulk", "mixed", "composite", "Blank"]
+                 sample_form = st.selectbox("Sample Form", s_forms, index=len(s_forms)-1)
+                 
+                 # Bandgap Type
+                 # Direct, Indirect, Blank
+                 bg_types = ["Direct", "Indirect", "Blank"] # User used capitalized Direct/Indirect in request
+                 bandgap_type = st.selectbox("Bandgap Type", bg_types, index=2)
+                 
+                 # Handle "Blank" -> None/Unknown mapping
+                 # Map "Blank" to "Unknown" or np.nan depending on what model expects.
+                 # Model expects "Unknown" for encoded categories usually (from previous steps).
+                 
+                 # Not used:
+                 morphology = "Unknown"
+                 phase_purity = "Unknown"
+
             else:
-                crystal_struct, sample_form, bandgap_type = "Cubic", "Powder", "Direct"
+                # Spinel defaults (unchanged for now or simplified)
+                synth_method = st.selectbox("Synthesis Method", ["Unknown", "Solution", "Solid-State", "Combustion", "Hydrothermal", "Sol-Gel", "Co-precipitation"], index=0)
+                morphology = st.selectbox("Morphology", ["Unknown", "Nanoparticles", "Bulk", "Film", "Spherical", "Agglomerated"], index=0)
+                
+                crystal_struct = "Cubic"
+                sample_form = "Powder"
+                bandgap_type = "Direct"
+                
                 bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])
                 phase_purity = st.selectbox("Phase Purity", ["Pure", "Impure", "Unknown"])
+
 
         st.markdown("---")
         
@@ -354,6 +371,22 @@ if page == "Single Prediction":
         if predict_btn:
             with st.spinner("Computing physics features and predicting..."):
                 # Prepare input
+                # Prepare input
+                
+                # Helper to handle "Blank"
+                def clean_cat(val):
+                    if val == "Blank" or val is None:
+                        return "Unknown"
+                    return val.lower() if isinstance(val, str) and val in ["Direct", "Indirect"] else val # Handle Bandgap casing if needed
+
+                # Handle numeric blanks
+                s_temp = synth_temp if synth_temp is not None else np.nan
+                s_time = synth_time if synth_time is not None else np.nan
+                
+                # Correct Crystal Structure / Sample Form / Method passing
+                # The encoder expects specific strings.
+                # If "Blank" -> "Unknown"
+                
                 input_data = {
                     'A_element': A_elem.strip(),
                     'A_oxidation': A_ox,
@@ -361,13 +394,14 @@ if page == "Single Prediction":
                     'B_oxidation': B_ox,
                     'X_element': X_elem.strip(),
                     'X_oxidation': X_ox,
-                    'synthesis_temperature': synth_temp,
-                    'crystal_structure': crystal_struct,
-                    'sample_form': sample_form,
-                    'synthesis_method': synth_method,
-                    'morphology': morphology,
-                    'bandgap_type': bandgap_type,
-                    'phase_purity': phase_purity
+                    'synthesis_temperature': s_temp,
+                    'synthesis_time_hours': s_time,
+                    'crystal_structure': clean_cat(crystal_struct),
+                    'sample_form': clean_cat(sample_form),
+                    'synthesis_method': clean_cat(synth_method),
+                    'morphology': clean_cat(morphology),
+                    'bandgap_type': clean_cat(bandgap_type),
+                    'phase_purity': clean_cat(phase_purity)
                 }
                 
                 if current_model_key == 'spinel':
