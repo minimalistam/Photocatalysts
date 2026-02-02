@@ -573,7 +573,8 @@ elif page == "About":
     
     st.markdown("---")
     
-
+    st.markdown("### Citation")
+    st.info("To be confirmed")
 
 # ============================================================================
 # FOOTER
