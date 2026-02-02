@@ -334,17 +334,48 @@ if page == "Single Prediction":
                  phase_purity = "Unknown"
 
             else:
-                # Spinel defaults
-                synth_method = st.selectbox("Synthesis Method", ["Unknown", "Solution", "Solid-State", "Combustion", "Hydrothermal", "Sol-Gel", "Co-precipitation"], index=0)
-                morphology = st.selectbox("Morphology", ["Unknown", "Nanoparticles", "Bulk", "Film", "Spherical", "Agglomerated"], index=0)
+                # Spinel Inputs (User Specified)
                 
-                crystal_struct = "Cubic"
-                sample_form = "Powder"
-                bandgap_type = "Direct"
-                
-                bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])
-                phase_purity = st.selectbox("Phase Purity", ["Pure", "Impure", "Unknown"])
+                # Synthesis Method
+                # combustion, sol-gel, precipitation, solid-state, Other, Vapor/Physical, hydrothermal, Blank
+                spinel_methods = [
+                    "combustion", "sol-gel", "precipitation", "solid-state", 
+                    "Other", "Vapor/Physical", "hydrothermal", "Blank"
+                ]
+                synth_method = st.selectbox("Synthesis Method", spinel_methods, index=len(spinel_methods)-1)
 
+                # Morphology 
+                # Nanoscale, agglomerated, Bulk/Granular, spherical, Geometric/Shaped, Porous, mixed morphology, Blank
+                spinel_morphs = [
+                    "Nanoscale", "agglomerated", "Bulk/Granular", "spherical", 
+                    "Geometric/Shaped", "Porous", "mixed morphology", "Blank"
+                ]
+                morphology = st.selectbox("Morphology", spinel_morphs, index=len(spinel_morphs)-1)
+                
+                # Crystal Structure - Fixed to Cubic
+                st.text_input("Crystal Structure", value="Cubic", disabled=True)
+                crystal_struct = "Cubic"
+                
+                # Sample Form
+                # powder, nanoparticles, bulk, thin film, nanowire array, single crystal, nanocrystals, Blank
+                spinel_forms = [
+                    "powder", "nanoparticles", "bulk", "thin film", 
+                    "nanowire array", "single crystal", "nanocrystals", "Blank"
+                ]
+                sample_form = st.selectbox("Sample Form", spinel_forms, index=len(spinel_forms)-1)
+                
+                # Bandgap Type
+                # Direct, Indirect, Blank
+                spinel_bg_types = ["Direct", "Indirect", "Blank"]
+                bandgap_type = st.selectbox("Bandgap Type", spinel_bg_types, index=2)
+                
+                # Phase Purity
+                # Pure, Impure, blank
+                spinel_purity = ["Pure", "Impure", "Blank"]
+                phase_purity = st.selectbox("Phase Purity", spinel_purity, index=2)
+                
+                # Bandgap Method (Likely still needed, keeping default)
+                bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])
 
         st.markdown("---")
         
