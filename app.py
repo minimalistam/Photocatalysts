@@ -277,14 +277,14 @@ if page == "Single Prediction":
                 with col_a:
                     st.caption("A-site element (Tetrahedral)")
                     A_elem = st.text_input("A-site", value=default_A, label_visibility="collapsed")
-                    # A_ox usually +2
+                    A_ox = st.number_input("A oxidation", value=2, step=1)
                 with col_b:
                     st.caption("B-site element (Octahedral)")
                     B_elem = st.text_input("B-site", value=default_B, label_visibility="collapsed")
-                    # B_ox usually +3
+                    B_ox = st.number_input("B oxidation", value=3, step=1)
                 
-                # Hidden inputs for compatibility
-                A_ox, B_ox, X_elem, X_ox = 2, 3, "O", -2
+                # Fixed Oxide
+                X_elem, X_ox = "O", -2
         
         st.markdown("---")
         
