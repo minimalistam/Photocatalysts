@@ -295,8 +295,11 @@ if page == "Single Prediction":
             with c1:
                 # Use value=None to allow empty
                 synth_temp = st.number_input("Synthesis Temperature (°C)", value=None, step=10.0, placeholder="blank")
-            with c2:
-                synth_time = st.number_input("Synthesis Time (hours)", value=None, step=0.5, placeholder="blank")
+            
+            synth_time = None
+            if current_model_key == 'perovskite':
+                with c2:
+                    synth_time = st.number_input("Synthesis Time (hours)", value=None, step=0.5, placeholder="blank")
 
             if current_model_key == 'perovskite':
                  # Strict User Lists
@@ -373,9 +376,6 @@ if page == "Single Prediction":
                 # Pure, Impure, blank
                 spinel_purity = ["Pure", "Impure", "Blank"]
                 phase_purity = st.selectbox("Phase Purity", spinel_purity, index=2)
-                
-                # Bandgap Method (Likely still needed, keeping default)
-                bandgap_method = st.selectbox("Bandgap Method", ["Tauc plot", "UV-Vis", "DRS"])
 
         st.markdown("---")
         
@@ -420,9 +420,6 @@ if page == "Single Prediction":
                     'bandgap_type': clean_cat(bandgap_type),
                     'phase_purity': clean_cat(phase_purity)
                 }
-                
-                if current_model_key == 'spinel':
-                    input_data['bandgap_method'] = bandgap_method
                 
                 # Validate (Basic)
                 is_valid = True
