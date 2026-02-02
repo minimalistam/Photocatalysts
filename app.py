@@ -198,15 +198,7 @@ with st.sidebar:
     
     # Citation
     with st.expander("Citation"):
-        st.code("""
-@article{mahboud2025materials,
-  title={Physics-Informed Machine Learning 
-         for Bandgap Prediction},
-  author={Mahboud, Amir et al.},
-  journal={In preparation},
-  year={2025}
-}
-        """, language="bibtex")
+        st.info("To be confirmed")
 
 # ============================================================================
 # PAGE: SINGLE PREDICTION
@@ -572,9 +564,6 @@ elif page == "About":
         """)
     
     st.markdown("---")
-    
-    st.markdown("### Citation")
-    st.info("To be confirmed")
 
 # ============================================================================
 # FOOTER
