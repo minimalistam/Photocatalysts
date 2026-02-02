@@ -116,17 +116,26 @@ def load_models():
     
     # Perovskite
     try:
-        models['perovskite'] = load_model_pipeline("models/perovskite")
+        # Prefer subfolder structure
+        if (Path("models/perovskite/manifest.json").exists()):
+             models['perovskite'] = load_model_pipeline("models/perovskite")
+        else:
+             models['perovskite'] = load_model_pipeline("models/perovskite") # Will raise if missing
     except Exception as e:
-        # Fallback to default 'models' dir for backward compatibility
+        # Fallback to default 'models' dir for backward compatibility or error
         try:
-            models['perovskite'] = load_model_pipeline("models")
+             # Only fallback if models/manifest.json exists there
+             if (Path("models/manifest.json").exists()):
+                models['perovskite'] = load_model_pipeline("models")
+             else:
+                raise e
         except:
             st.error(f"Failed to load Perovskite model: {e}")
             
     # Spinel
     try:
-        models['spinel'] = load_model_pipeline("models/spinel")
+        if (Path("models/spinel/manifest.json").exists()):
+            models['spinel'] = load_model_pipeline("models/spinel")
     except Exception as e:
         # st.warning(f"Spinel model not found: {e}")
         pass
@@ -365,9 +374,9 @@ if page == "Single Prediction":
                 if is_valid:
                     # Compute features
                     if current_model_key == 'perovskite':
-                        features_df = compute_physics_features(input_data, ELEMENTS_DATA, encoders)
+                        features_df = compute_physics_features(input_data, ELEMENTS_DATA, encoders, manifest)
                     else:
-                        features_df = compute_spinel_features(input_data, ELEMENTS_DATA, encoders)
+                        features_df = compute_spinel_features(input_data, ELEMENTS_DATA, encoders, manifest)
                     
                     # Predict with SHAP
                     try:
@@ -461,9 +470,9 @@ elif page == "Batch Prediction":
                         if 'X_element' not in input_data: input_data['X_element'] = 'O'
                         
                         if current_model_key == 'perovskite':
-                            features_df = compute_physics_features(input_data, ELEMENTS_DATA, encoders)
+                            features_df = compute_physics_features(input_data, ELEMENTS_DATA, encoders, manifest)
                         else:
-                            features_df = compute_spinel_features(input_data, ELEMENTS_DATA, encoders)
+                            features_df = compute_spinel_features(input_data, ELEMENTS_DATA, encoders, manifest)
                             
                         result = predict_single(model, features_df, manifest, compute_shap=False)
                         

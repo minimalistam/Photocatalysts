@@ -43,10 +43,11 @@ def load_model_pipeline(model_dir="models"):
     # Actually, my compute_spinel_features uses encoders.
     # I need to save the encoders from the Spinel training or handle it differently.
     # For now, let's make encoders optional.
+    # Load encoders (optional)
     if (model_dir / 'categorical_encoders.pkl').exists():
         encoders = joblib.load(model_dir / 'categorical_encoders.pkl')
     else:
-        encoders = {}
+        encoders = {}  # Empty dict implies no encoding needed (CatBoost handles strings)
     
     return model, manifest, encoders
 
@@ -146,7 +147,7 @@ def predict_single(model, features_df, manifest, compute_shap=True):
     return result
 
 
-def predict_batch(df_input, model, manifest, encoders, elements_data, progress_callback=None):
+def predict_batch(df_input, model, manifest, encoders, elements_data, model_type='perovskite', progress_callback=None):
     """
     Batch prediction for multiple materials.
     
@@ -156,12 +157,13 @@ def predict_batch(df_input, model, manifest, encoders, elements_data, progress_c
         manifest: Feature manifest
         encoders: Categorical encoders
         elements_data: Element properties
+        model_type: 'perovskite' or 'spinel'
         progress_callback: Function(progress, message) for progress updates
         
     Returns:
         DataFrame with predictions
     """
-    from feature_engineering import compute_physics_features
+    from feature_engineering import compute_physics_features, compute_spinel_features
     
     results = []
     n_total = len(df_input)
@@ -176,14 +178,22 @@ def predict_batch(df_input, model, manifest, encoders, elements_data, progress_c
             input_data = row.to_dict()
             
             # Compute features
-            features_df = compute_physics_features(input_data, elements_data, encoders)
+            if model_type == 'perovskite':
+                features_df = compute_physics_features(input_data, elements_data, encoders, manifest)
+            else:
+                features_df = compute_spinel_features(input_data, elements_data, encoders, manifest)
             
             # Predict
             result = predict_single(model, features_df, manifest, compute_shap=False)
             
             # Add to results
+            if model_type == 'perovskite':
+                 mat_name = f"{row.get('A_element', 'A')}{row.get('B_element', 'B')}{row.get('X_element', 'X')}₃"
+            else:
+                 mat_name = f"{row.get('A_element', 'A')}{row.get('B_element', 'B')}₂O₄"
+
             results.append({
-                'Material': f"{row.get('A_element', 'X')}{row.get('B_element', 'Y')}{row.get('X_element', 'Z')}₃",
+                'Material': mat_name,
                 'Predicted_Bandgap_eV': result['prediction'],
                 'Model_Uncertainty_eV': manifest['performance'].get('aggregated_rmse_eV', 0),
                 **input_data
@@ -199,5 +209,6 @@ def predict_batch(df_input, model, manifest, encoders, elements_data, progress_c
             })
     
     return pd.DataFrame(results)
+
 
 

@@ -80,7 +80,173 @@ def get_d_electrons(el):
     except:
         return 0
 
-def compute_physics_features(input_data, elements_data, encoders):
+def compute_physics_features(input_data, elements_data, encoders, manifest=None):
+    """
+    Compute all physics features from composition.
+    
+    Args:
+        input_data: dict with A/B/X elements and oxidation states
+        elements_data: Periodic table data
+        encoders: Categorical encoders
+        manifest: Model manifest containing 'feature_names'
+        
+    Returns:
+        DataFrame with one row of features
+    """
+    
+    A_elem = input_data['A_element']
+    A_ox = input_data['A_oxidation']
+    B_elem = input_data['B_element']
+    B_ox = input_data['B_oxidation']
+    X_elem = input_data['X_element']
+    X_ox = input_data['X_oxidation']
+    
+    # Compute properties for each site
+    features = {}
+    
+    # A-site features
+    A_is_organic = int(A_elem in ['MA', 'FA', 'EA', 'GA'])
+    features['A_is_organic'] = A_is_organic
+    
+    if not A_is_organic:
+        features['A_ionic_radius_12CN'] = ionic_radius(A_elem, A_ox, 12)
+        features['A_electronegativity'] = elem_prop(A_elem, 'X')
+        features['A_atomic_mass'] = elem_prop(A_elem, 'atomic_mass')
+        features['A_ionization_energy'] = elem_prop(A_elem, 'ionization_energy')
+    else:
+        # Organic cation - use approximate values
+        features['A_ionic_radius_12CN'] = np.nan
+        features['A_electronegativity'] = 2.5 if A_elem == 'MA' else 2.4
+        features['A_atomic_mass'] = 120.0 if A_elem == 'FA' else 100.0
+        features['A_ionization_energy'] = 7.0
+        
+    # Perovskite specific A-site valence check (usually not used but computed just in case)
+    try:
+        e_A = Element(A_elem) if not A_is_organic else None
+        features['A_valence_electrons'] = float(e_A.group) if e_A and e_A.group else np.nan
+    except:
+        features['A_valence_electrons'] = np.nan
+    
+    # A-site entropy/variance (set to 0 for single element)
+    features['A_entropy'] = 0.0
+    features['A_size_variance'] = 0.0
+    features['A_EN_var'] = 0.0
+    
+    # B-site features
+    features['B_ionic_radius_6CN'] = ionic_radius(B_elem, B_ox, 6)
+    features['B_electronegativity'] = elem_prop(B_elem, 'X')
+    features['B_atomic_mass'] = elem_prop(B_elem, 'atomic_mass')
+    features['B_ionization_energy'] = elem_prop(B_elem, 'ionization_energy')
+    features['B_electron_affinity'] = elem_prop(B_elem, 'electron_affinity')
+    features['B_d_electrons'] = get_d_electrons(B_elem)
+    features['B_is_transition_metal'] = int(features['B_d_electrons'] > 0)
+    features['B_entropy'] = 0.0
+    features['B_size_variance'] = 0.0
+    features['B_EN_var'] = 0.0
+    
+    try:
+        e_B = Element(B_elem)
+        features['B_valence_electrons'] = float(e_B.group) if e_B.group else np.nan
+    except:
+        features['B_valence_electrons'] = np.nan
+    
+    # X-site features
+    features['X_ionic_radius_6CN'] = ionic_radius(X_elem, X_ox, 6)
+    features['X_electronegativity'] = elem_prop(X_elem, 'X')
+    features['X_atomic_mass'] = elem_prop(X_elem, 'atomic_mass')
+    features['X_electron_affinity'] = elem_prop(X_elem, 'electron_affinity')
+    features['X_entropy'] = 0.0
+    features['X_size_variance'] = 0.0
+    features['X_EN_var'] = 0.0
+    
+    # Derived features
+    r_A = features['A_ionic_radius_12CN']
+    r_B = features['B_ionic_radius_6CN']
+    r_X = features['X_ionic_radius_6CN']
+    
+    if pd.notna(r_A) and pd.notna(r_B) and pd.notna(r_X):
+        features['tolerance_factor'] = (r_A + r_X) / (np.sqrt(2) * (r_B + r_X))
+    else:
+        features['tolerance_factor'] = np.nan
+    
+    if pd.notna(r_B) and pd.notna(r_X):
+        features['octahedral_factor'] = r_B / r_X
+    else:
+        features['octahedral_factor'] = np.nan
+    
+    EN_B = features['B_electronegativity']
+    EN_X = features['X_electronegativity']
+    EN_A = features['A_electronegativity']
+    
+    features['delta_EN_BX'] = abs(EN_B - EN_X) if pd.notna(EN_B) and pd.notna(EN_X) else np.nan
+    features['delta_EN_AX'] = abs(EN_A - EN_X) if pd.notna(EN_A) and pd.notna(EN_X) else np.nan
+    features['delta_EN_AB'] = abs(EN_A - EN_B) if pd.notna(EN_A) and pd.notna(EN_B) else np.nan
+    
+    M_B = features['B_atomic_mass']
+    M_X = features['X_atomic_mass']
+    
+    if pd.notna(M_B) and pd.notna(M_X) and (M_B + M_X) > 0:
+        features['reduced_mass_BX'] = (M_B * M_X) / (M_B + M_X)
+        features['mass_ratio_BX'] = M_B / M_X
+    else:
+        features['reduced_mass_BX'] = np.nan
+        features['mass_ratio_BX'] = np.nan
+    
+    if pd.notna(r_X) and pd.notna(r_B) and pd.notna(EN_X) and pd.notna(EN_B) and EN_X > 0 and EN_B > 0:
+        features['polarizability_ratio_XB'] = (r_X**3 / EN_X) / (r_B**3 / EN_B)
+    else:
+        features['polarizability_ratio_XB'] = np.nan
+    
+    # Synthesis features
+    features['synthesis_temperature'] = float(input_data.get('synthesis_temperature', np.nan))
+    features['synthesis_time_hours'] = float(input_data.get('synthesis_time_hours', np.nan))
+    
+    # Categorical features (encode)
+    cat_features = {
+        'crystal_structure': input_data.get('crystal_structure', 'Unknown'),
+        'sample_form': input_data.get('sample_form', 'Unknown'),
+        'synthesis_method': input_data.get('synthesis_method', 'Unknown'),
+        'morphology': input_data.get('morphology', 'Unknown'),
+        'bandgap_type': input_data.get('bandgap_type', 'Unknown'),
+        'phase_purity': input_data.get('phase_purity', 'Unknown'),
+        'Organic/inorganic': 'Organic' if A_is_organic else 'Inorganic'
+    }
+    
+    for col, value in cat_features.items():
+        # For CatBoost native, we pass the strings directly if encoders are missing.
+        # But if encoders exist, we transform.
+        if encoders and col in encoders:
+            le = encoders[col]
+            if value in le.classes_:
+                features[col] = le.transform([value])[0]
+            else:
+                features[col] = -1
+        else:
+            # Pass as string (assume CatBoost handles it)
+            features[col] = str(value)
+
+    # Explicitly set A_is_organic (already computed)
+    features['A_is_organic'] = A_is_organic
+
+    # Dynamically select columns based on manifest
+    if manifest and 'feature_names' in manifest:
+        ordered_cols = manifest['feature_names']
+    else:
+        # Fallback to a default list if no manifest provided (should not happen in app)
+        ordered_cols = list(features.keys())
+    
+    # Create DataFrame
+    df = pd.DataFrame([features])
+    
+    # Ensure all columns exist (fill 0 or NaN if missing)
+    for col in ordered_cols:
+        if col not in df.columns:
+            # Special handling: if col is missing but we know it should be numerical 0
+            df[col] = 0.0
+            
+    df = df[ordered_cols]
+    
+    return df
     """
     Compute all physics features from composition.
     
@@ -328,7 +494,174 @@ def get_cfse_proxy(B_elem):
     }
     return mapping.get(B_elem, 0.75)
 
-def compute_spinel_features(input_data, elements_data, encoders):
+def compute_spinel_features(input_data, elements_data, encoders, manifest=None):
+    """
+    Compute features for Spinel (AB2O4) model.
+    Matches the features in manifest.
+    """
+    A_elem = input_data['A_element']
+    B_elem = input_data['B_element']
+    X_elem = "O"
+    
+    # Oxidation states
+    A_ox = input_data.get('A_oxidation', 2)
+    B_ox = input_data.get('B_oxidation', 3)
+    X_ox = -2
+    
+    features = {}
+    
+    # --- 1. Elemental Properties (A, B, O) ---
+    
+    # A-site
+    features['A_ionic_radius_4CN'] = ionic_radius(A_elem, A_ox, 4)
+    features['A_electronegativity'] = elem_prop(A_elem, 'X')
+    features['A_atomic_mass'] = elem_prop(A_elem, 'atomic_mass')
+    features['A_ionization_energy'] = elem_prop(A_elem, 'ionization_energy')
+    features['A_electron_affinity'] = elem_prop(A_elem, 'electron_affinity')
+    
+    try:
+        e_A = Element(A_elem)
+        features['A_valence_electrons'] = float(e_A.group) if e_A.group else np.nan
+    except:
+        features['A_valence_electrons'] = np.nan
+        
+    features['A_d_electrons'] = get_d_electrons(A_elem)
+    features['A_is_transition_metal'] = int(features['A_d_electrons'] > 0)
+    features['A_entropy'] = 0.0
+    features['A_size_variance'] = 0.0
+    features['A_EN_var'] = 0.0
+    
+    # B-site
+    features['B_ionic_radius_6CN'] = ionic_radius(B_elem, B_ox, 6)
+    features['B_electronegativity'] = elem_prop(B_elem, 'X')
+    features['B_atomic_mass'] = elem_prop(B_elem, 'atomic_mass')
+    features['B_ionization_energy'] = elem_prop(B_elem, 'ionization_energy')
+    features['B_electron_affinity'] = elem_prop(B_elem, 'electron_affinity')
+    
+    try:
+        e_B = Element(B_elem)
+        features['B_valence_electrons'] = float(e_B.group) if e_B.group else np.nan
+    except:
+        features['B_valence_electrons'] = np.nan
+        
+    features['B_d_electrons'] = get_d_electrons(B_elem)
+    features['B_is_transition_metal'] = int(features['B_d_electrons'] > 0)
+    features['B_entropy'] = 0.0
+    features['B_size_variance'] = 0.0
+    features['B_EN_var'] = 0.0
+    
+    # O-site
+    features['O_ionic_radius'] = ionic_radius('O', -2, 4)
+    features['O_electronegativity'] = elem_prop('O', 'X')
+    features['O_atomic_mass'] = elem_prop('O', 'atomic_mass')
+    features['O_electron_affinity'] = elem_prop('O', 'electron_affinity')
+    
+    # --- 2. Geometric Factors ---
+    r_A = features['A_ionic_radius_4CN']
+    r_B = features['B_ionic_radius_6CN']
+    r_O = features['O_ionic_radius']
+    
+    if pd.notna(r_A) and pd.notna(r_B) and pd.notna(r_O):
+        features['tetrahedral_factor'] = r_A / r_O
+        features['octahedral_factor'] = r_B / r_O
+        features['spinel_tolerance_factor'] = (r_A + r_O) / (np.sqrt(3) * (r_B + r_O) * 0.5)
+        
+        features['A_O_bond_length'] = r_A + r_O
+        features['B_O_bond_length'] = r_B + r_O
+        features['bond_length_ratio'] = features['A_O_bond_length'] / features['B_O_bond_length']
+    else:
+        features['tetrahedral_factor'] = np.nan
+        features['octahedral_factor'] = np.nan
+        features['spinel_tolerance_factor'] = np.nan
+        features['A_O_bond_length'] = np.nan
+        features['B_O_bond_length'] = np.nan
+        features['bond_length_ratio'] = np.nan
+
+    # --- 3. Physics / Derived Features ---
+    EN_A = features['A_electronegativity']
+    EN_B = features['B_electronegativity']
+    EN_O = features['O_electronegativity']
+    
+    features['delta_EN_AO'] = abs(EN_A - EN_O) if pd.notna(EN_A) and pd.notna(EN_O) else np.nan
+    features['delta_EN_BO'] = abs(EN_B - EN_O) if pd.notna(EN_B) and pd.notna(EN_O) else np.nan
+    features['delta_EN_AB'] = abs(EN_A - EN_B) if pd.notna(EN_A) and pd.notna(EN_B) else np.nan
+    features['delta_chi_BO_squared'] = (EN_B - EN_O)**2 if pd.notna(EN_B) and pd.notna(EN_O) else np.nan
+    
+    M_A = features['A_atomic_mass']
+    M_B = features['B_atomic_mass']
+    M_O = features['O_atomic_mass']
+    
+    features['reduced_mass_AO'] = (M_A * M_O) / (M_A + M_O) if pd.notna(M_A) and pd.notna(M_O) else np.nan
+    features['reduced_mass_BO'] = (M_B * M_O) / (M_B + M_O) if pd.notna(M_B) and pd.notna(M_O) else np.nan
+    features['mass_ratio_AO'] = M_A / M_O if pd.notna(M_A) and pd.notna(M_O) else np.nan
+    features['mass_ratio_BO'] = M_B / M_O if pd.notna(M_B) and pd.notna(M_O) else np.nan
+    
+    # Polarizability Ratio: (r_O^3 / X_O) / (r_B^3 / X_B)
+    if pd.notna(r_O) and pd.notna(r_B) and pd.notna(EN_O) and pd.notna(EN_B) and EN_O > 0 and EN_B > 0:
+        pol_O = r_O**3 / EN_O
+        pol_B = r_B**3 / EN_B
+        features['polarizability_ratio_OB'] = pol_O / pol_B
+        features['O_polarizability_proxy'] = pol_O
+    else:
+        features['polarizability_ratio_OB'] = np.nan
+        features['O_polarizability_proxy'] = np.nan
+        
+    features['avg_d_electrons'] = (features['A_d_electrons'] + 2*features['B_d_electrons']) / 3.0
+    features['mean_oxidation_gap'] = abs(B_ox - A_ox)
+    features['mean_B_oxidation_state'] = float(B_ox)
+    
+    # Bonding Factor
+    features['bonding_factor'] = A_ox / 4.0 
+    
+    features['CFSE_proxy'] = get_cfse_proxy(B_elem)
+    features['t2g_eg_split_proxy'] = get_cfse_proxy(B_elem) 
+    
+    features['charge_balance_residual'] = abs(A_ox + 2*B_ox + 4*X_ox)
+    features['pauling_bond_strength_B'] = B_ox / 6.0
+
+    # --- 4. Categorical & Experimental ---
+    # Convert to string to match CatBoost expectations for categorical features (if not encoded)
+    features['bandgap_type'] = str(input_data.get('bandgap_type', 'Unknown'))
+    features['bandgap_method'] = str(input_data.get('bandgap_method', 'Unknown'))
+    features['crystal_structure'] = str(input_data.get('crystal_structure', 'Unknown'))
+    features['morphology'] = str(input_data.get('morphology', 'Unknown'))
+    features['synthesis_method'] = str(input_data.get('synthesis_method', 'Unknown'))
+    features['sample_form'] = str(input_data.get('sample_form', 'Unknown'))
+    features['phase_purity'] = str(input_data.get('phase_purity', 'Unknown'))
+    features['space_group'] = str(input_data.get('space_group', 'Unknown'))
+    
+    features['synthesis_temperature'] = float(input_data.get('synthesis_temperature', np.nan))
+    
+    cat_features_list = ['bandgap_type', 'bandgap_method', 'crystal_structure', 
+                         'morphology', 'synthesis_method', 'sample_form', 
+                         'phase_purity', 'space_group']
+
+    for col in cat_features_list:
+         if encoders and col in encoders:
+            le = encoders[col]
+            val = features[col]
+            if val in le.classes_:
+                features[col] = le.transform([val])[0]
+            else:
+                features[col] = -1
+
+    # Dynamically select columns based on manifest
+    if manifest and 'feature_names' in manifest:
+        ordered_cols = manifest['feature_names']
+    else:
+        ordered_cols = list(features.keys())
+    
+    # Create DataFrame
+    df = pd.DataFrame([features])
+    
+    # Ensure all columns exist (fill 0 or NaN if missing)
+    for col in ordered_cols:
+        if col not in df.columns:
+            df[col] = 0.0
+            
+    df = df[ordered_cols]
+    
+    return df
     """
     Compute features for Spinel (AB2O4) model.
     Matches the 59 features in v2.0-spinel-no-co-ni manifest.
