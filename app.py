@@ -298,7 +298,7 @@ if page == "Single Prediction":
         
         # Synthesis parameters
         with st.expander("Synthesis Conditions (Required)", expanded=True):
-            st.info("Note: Models use only Synthesis Temperature. Other parameters (Time, Annealing, Lattice) are not key features.")
+
             
             synth_temp = st.number_input("Synthesis Temperature (°C)", value=600.0, step=10.0)
         
