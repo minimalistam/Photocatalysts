@@ -273,7 +273,7 @@ if page == "Single Prediction":
                     X_elem = st.text_input("X-site", value=default_X, label_visibility="collapsed")
                     X_ox = st.number_input("X oxidation state", value=default_X_ox, step=1)
             else: # Spinel
-                col_a, col_b = st.columns(2)
+                col_a, col_b, col_x = st.columns(3)
                 with col_a:
                     st.caption("A-site element (Tetrahedral)")
                     A_elem = st.text_input("A-site", value=default_A, label_visibility="collapsed")
@@ -282,9 +282,10 @@ if page == "Single Prediction":
                     st.caption("B-site element (Octahedral)")
                     B_elem = st.text_input("B-site", value=default_B, label_visibility="collapsed")
                     B_ox = st.number_input("B oxidation", value=3, step=1)
-                
-                # Fixed Oxide
-                X_elem, X_ox = "O", -2
+                with col_x:
+                    st.caption("X-site element (Anion)")
+                    X_elem = st.text_input("X-site", value="O", disabled=True, label_visibility="collapsed")
+                    X_ox = st.number_input("X oxidation", value=-2, disabled=True, step=1)
         
         st.markdown("---")
         
