@@ -297,20 +297,10 @@ if page == "Single Prediction":
         st.markdown("---")
         
         # Synthesis parameters
-        with st.expander("Synthesis & Structure (Required/Optional)", expanded=True):
-            if current_model_key == 'spinel':
-                st.info("For Spinels, Lattice Parameter is CRITICAL.")
-                lattice_param = st.number_input("Lattice Parameter (Å)", value=8.08, step=0.01, format="%.4f")
-                cryst_size = st.number_input("Crystallite Size (nm)", value=20.0, step=1.0)
+        with st.expander("Synthesis Conditions (Required)", expanded=True):
+            st.info("Note: Models use only Synthesis Temperature. Other parameters (Time, Annealing, Lattice) are not key features.")
             
             synth_temp = st.number_input("Synthesis Temperature (°C)", value=600.0, step=10.0)
-            synth_time = st.number_input("Synthesis Time (hours)", value=12.0, step=0.5)
-            
-            if current_model_key == 'perovskite':
-                anneal_temp = st.number_input("Annealing Temperature (°C)", value=100.0, step=10.0)
-                anneal_time = st.number_input("Annealing Time (hours)", value=1.0, step=0.5)
-            else:
-                anneal_temp, anneal_time = 0.0, 0.0
         
         # Categorical
         with st.expander("Method & Morphology", expanded=False):
@@ -349,9 +339,6 @@ if page == "Single Prediction":
                     'X_element': X_elem.strip(),
                     'X_oxidation': X_ox,
                     'synthesis_temperature': synth_temp,
-                    'synthesis_time_hours': synth_time,
-                    'annealing_temperature': anneal_temp,
-                    'annealing_time_hours': anneal_time,
                     'crystal_structure': crystal_struct,
                     'sample_form': sample_form,
                     'synthesis_method': synth_method,
@@ -361,8 +348,6 @@ if page == "Single Prediction":
                 }
                 
                 if current_model_key == 'spinel':
-                    input_data['lattice_parameter'] = lattice_param
-                    input_data['crystallite_size'] = cryst_size
                     input_data['bandgap_method'] = bandgap_method
                 
                 # Validate (Basic)
