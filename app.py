@@ -562,7 +562,7 @@ elif page == "About":
     
     if current_model_key == 'perovskite':
         st.markdown(f"""
-        ### Model: CatBoost Regressor (Tuned)
+        ### Model: CatBoost Regressor
         
         **Description:**
         The perovskite model was trained mainly on conventional ABX₃ perovskite structures including both inorganic oxide perovskites (e.g., titanates, ferrites, manganites, and niobates) and hybrid organic-inorganic halide perovskites. Therefore, within these classes, the model demonstrates robust predictive accuracy.
@@ -573,12 +573,12 @@ elif page == "About":
         **Performance:**
         | Model | R² | RMSE (eV) | MAE (eV) |
         | :--- | :--- | :--- | :--- |
-        | CatBoost - Tuned | {perf.get('aggregated_r2', 0):.2f} | {perf.get('aggregated_rmse_eV', 0):.2f} | {perf.get('aggregated_mae_eV', 0):.2f} |
+        | CatBoost | {perf.get('aggregated_r2', 0):.2f} | {perf.get('aggregated_rmse_eV', 0):.2f} | {perf.get('aggregated_mae_eV', 0):.2f} |
         """)
         
     else: # Spinel
         st.markdown(f"""
-        ### Model: CatBoost Regressor (Optimized)
+        ### Model: CatBoost Regressor
         
         **Description:**
         This model was mainly trained on Ferrites ($MFe_2O_4$) and Aluminates ($MAl_2O_4$). As a result, the model shows robust predictive performance within these classes of materials.
@@ -589,7 +589,7 @@ elif page == "About":
         **Performance:**
         | Model | R² | RMSE (eV) | MAE (eV) |
         | :--- | :--- | :--- | :--- |
-        | CatBoost - Tuned | {perf.get('aggregated_r2', 0):.2f} | {perf.get('aggregated_rmse_eV', 0):.2f} | {perf.get('aggregated_mae_eV', 0):.2f} |
+        | CatBoost | {perf.get('aggregated_r2', 0):.2f} | {perf.get('aggregated_rmse_eV', 0):.2f} | {perf.get('aggregated_mae_eV', 0):.2f} |
         """)
     
     st.markdown("---")
