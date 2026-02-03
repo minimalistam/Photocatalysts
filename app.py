@@ -9,8 +9,6 @@ Features:
 - Auto-computed physics features
 - Model interpretability
 
-Author: Amir Mahboud
-Version: v1.0
 """
 
 import streamlit as st
@@ -108,7 +106,7 @@ if not check_password():
 # LOAD MODELS (CACHED)
 # ============================================================================
 
-# @st.cache_resource (Disabled to force reload of new models)
+
 def load_models():
     """Load all model pipelines."""
     models = {}
@@ -220,11 +218,14 @@ if page == "Single Prediction":
             if st.button("Example: MASnI₃", use_container_width=True): st.session_state.example = "MASnI3"
     else: # Spinel
         with col_ex1:
-            if st.button("Example: MgAl₂O₄", use_container_width=True): st.session_state.example = "MgAl2O4"
+            if st.button("ZnFe₂O₄ (Combustion)", use_container_width=True, help="High bandgap example (~4.0 eV)"): 
+                st.session_state.example = "ZnFe2O4_High"
         with col_ex2:
-            if st.button("Example: ZnFe₂O₄", use_container_width=True): st.session_state.example = "ZnFe2O4"
+            if st.button("ZnFe₂O₄ (Precipitation)", use_container_width=True, help="Low bandgap example (~1.96 eV)"): 
+                st.session_state.example = "ZnFe2O4_Low"
         with col_ex3:
-            if st.button("Example: CoAl₂O₄", use_container_width=True): st.session_state.example = "CoAl2O4"
+            if st.button("MgFe₂O₄ (Default)", use_container_width=True, help="Typical Ferrite (~2.3 eV)"): 
+                st.session_state.example = "MgFe2O4"
     
     st.markdown("---")
     
@@ -244,17 +245,34 @@ if page == "Single Prediction":
                 default_A_ox, default_B_ox, default_X_ox = 1, 2, -1
             else:
                 default_A, default_B, default_X = "Mg", "Al", "O" # X is unused/fixed
-                default_A_ox, default_B_ox, default_X_ox = 2, 3, -2
-            
             # Check for example
+            default_A_ox, default_B_ox, default_X_ox = 2, 3, -2
+            default_synth_method = "Blank"
+            default_morphology = "Blank"
+            default_sample_form = "Blank"
+            
             if 'example' in st.session_state:
                 ex = st.session_state.example
+                
+                # Perovskite Examples
                 if ex == "CsPbI3": default_A, default_B, default_X = "Cs", "Pb", "I"
                 elif ex == "FAPbBr3": default_A, default_B, default_X = "FA", "Pb", "Br"
                 elif ex == "MASnI3": default_A, default_B, default_X = "MA", "Sn", "I"
-                elif ex == "MgAl2O4": default_A, default_B = "Mg", "Al"
-                elif ex == "ZnFe2O4": default_A, default_B = "Zn", "Fe"
-                elif ex == "CoAl2O4": default_A, default_B = "Co", "Al"
+                
+                # Spinel Examples
+                elif ex == "ZnFe2O4_High": 
+                    default_A, default_B = "Zn", "Fe"
+                    default_synth_method = "combustion"
+                    default_sample_form = "nanoparticles"
+                    # Morphology left as Blank for this case as per test script
+                elif ex == "ZnFe2O4_Low": 
+                    default_A, default_B = "Zn", "Fe"
+                    default_synth_method = "precipitation"
+                    default_sample_form = "powder"
+                    default_morphology = "Nanoscale"
+                elif ex == "MgFe2O4": 
+                    default_A, default_B = "Mg", "Fe"
+                    
                 del st.session_state.example
             
             if current_model_key == 'perovskite':
@@ -345,7 +363,8 @@ if page == "Single Prediction":
                     "combustion", "sol-gel", "precipitation", "solid-state", 
                     "Other", "Vapor/Physical", "hydrothermal", "Blank"
                 ]
-                synth_method = st.selectbox("Synthesis Method", spinel_methods, index=len(spinel_methods)-1)
+                s_m_idx = spinel_methods.index(default_synth_method) if default_synth_method in spinel_methods else len(spinel_methods)-1
+                synth_method = st.selectbox("Synthesis Method", spinel_methods, index=s_m_idx)
 
                 # Morphology 
                 # Nanoscale, agglomerated, Bulk/Granular, spherical, Geometric/Shaped, Porous, mixed morphology, Blank
@@ -353,7 +372,8 @@ if page == "Single Prediction":
                     "Nanoscale", "agglomerated", "Bulk/Granular", "spherical", 
                     "Geometric/Shaped", "Porous", "mixed morphology", "Blank"
                 ]
-                morphology = st.selectbox("Morphology", spinel_morphs, index=len(spinel_morphs)-1)
+                morph_idx = spinel_morphs.index(default_morphology) if default_morphology in spinel_morphs else len(spinel_morphs)-1
+                morphology = st.selectbox("Morphology", spinel_morphs, index=morph_idx)
                 
                 # Crystal Structure - Fixed to Cubic
                 st.text_input("Crystal Structure", value="Cubic", disabled=True)
@@ -365,7 +385,8 @@ if page == "Single Prediction":
                     "powder", "nanoparticles", "bulk", "thin film", 
                     "nanowire array", "single crystal", "nanocrystals", "Blank"
                 ]
-                sample_form = st.selectbox("Sample Form", spinel_forms, index=len(spinel_forms)-1)
+                form_idx = spinel_forms.index(default_sample_form) if default_sample_form in spinel_forms else len(spinel_forms)-1
+                sample_form = st.selectbox("Sample Form", spinel_forms, index=form_idx)
                 
                 # Bandgap Type
                 # Direct, Indirect, Blank
@@ -387,7 +408,6 @@ if page == "Single Prediction":
         
         if predict_btn:
             with st.spinner("Computing physics features and predicting..."):
-                # Prepare input
                 # Prepare input
                 
                 # Helper to handle "Blank"

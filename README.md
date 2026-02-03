@@ -58,8 +58,4 @@ If you use this tool in your research, please cite:
 
 > Mahboud, A. et al. (2025). *Physics-Informed Machine Learning for Bandgap Prediction in Perovskite and Spinel Oxides*. [Journal/Conference Name].
 
-## 📧 Contact
 
-**Amir Mahboud**  
-RMIT University  
-[amir.mahboud@student.rmit.edu.au](mailto:amir.mahboud@student.rmit.edu.au)

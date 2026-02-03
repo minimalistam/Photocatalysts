@@ -806,67 +806,44 @@ def compute_spinel_features(input_data, elements_data, encoders, manifest=None):
     
     features['synthesis_temperature'] = float(input_data.get('synthesis_temperature', np.nan))
     
-    # --- 5. Order Columns (EXACTLY as in manifest) ---
-    ordered_cols = [
-        "bandgap_type",
-        "bandgap_method",
-        "crystal_structure",
-        "morphology",
-        "synthesis_method",
-        "synthesis_temperature",
-        "sample_form",
-        "phase_purity",
-        "A_ionic_radius_4CN",
-        "A_electronegativity",
-        "A_atomic_mass",
-        "A_ionization_energy",
-        "A_electron_affinity",
-        "A_valence_electrons",
-        "A_d_electrons",
-        "A_is_transition_metal",
-        "A_entropy",
-        "A_size_variance",
-        "A_EN_var",
-        "B_ionic_radius_6CN",
-        "B_electronegativity",
-        "B_atomic_mass",
-        "B_ionization_energy",
-        "B_electron_affinity",
-        "B_valence_electrons",
-        "B_d_electrons",
-        "B_is_transition_metal",
-        "B_entropy",
-        "B_size_variance",
-        "B_EN_var",
-        "O_ionic_radius",
-        "O_electronegativity",
-        "O_atomic_mass",
-        "O_electron_affinity",
-        "tetrahedral_factor",
-        "octahedral_factor",
-        "spinel_tolerance_factor",
-        "delta_EN_AO",
-        "delta_EN_BO",
-        "delta_EN_AB",
-        "reduced_mass_BO",
-        "reduced_mass_AO",
-        "mass_ratio_BO",
-        "mass_ratio_AO",
-        "polarizability_ratio_OB",
-        "avg_d_electrons",
-        "mean_oxidation_gap",
-        "delta_chi_BO_squared",
-        "bonding_factor",
-        "A_O_bond_length",
-        "B_O_bond_length",
-        "bond_length_ratio",
-        "CFSE_proxy",
-        "t2g_eg_split_proxy",
-        "charge_balance_residual",
-        "pauling_bond_strength_B",
-        "mean_B_oxidation_state",
-        "O_polarizability_proxy"
-    ]
+    # --- 5. Order Columns (Use manifest order if available) ---
+    if manifest and 'feature_names' in manifest:
+        ordered_cols = manifest['feature_names']
+    else:
+        # Fallback to hardcoded list (original logic)
+        ordered_cols = [
+            "crystal_structure", # Match training order roughly if manifest missing
+            "space_group",
+            "morphology",
+            "synthesis_method",
+            "synthesis_temperature",
+            "sample_form",
+            "phase_purity",
+            "A_ionic_radius_4CN",
+            "A_electronegativity",
+            "A_atomic_mass",
+            "A_valence_electrons",
+            "B_ionic_radius_6CN",
+            "B_electronegativity",
+            "B_atomic_mass",
+            "B_valence_electrons",
+            "O_ionic_radius",
+            "O_electronegativity",
+            "tetrahedral_factor",
+            "octahedral_factor",
+            "spinel_tolerance_factor",
+            "delta_EN_AO",
+            "delta_EN_BO",
+            "delta_EN_AB",
+            "bonding_factor",
+            "A_O_bond_length",
+            "B_O_bond_length",
+            "CFSE_proxy",
+            "charge_balance_residual",
+            "bandgap_type"
+        ]
+        # Append any others from the huge list if needed, or just rely on manifest. 
+        # Since manifest is required for valid inference, this path is safety only.
     
     # Create DataFrame
     df = pd.DataFrame([features])
@@ -874,7 +851,11 @@ def compute_spinel_features(input_data, elements_data, encoders, manifest=None):
     # Ensure all columns exist (fill 0 or NaN if missing)
     for col in ordered_cols:
         if col not in df.columns:
-            df[col] = 0
+            # Default for categorical missing?
+            if col in ['bandgap_type', 'synthesis_method', 'morphology', 'sample_form', 'phase_purity', 'crystal_structure', 'space_group']:
+                 df[col] = 'Unknown'
+            else:
+                 df[col] = 0.0
             
     df = df[ordered_cols]
     

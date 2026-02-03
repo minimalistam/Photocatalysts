@@ -70,8 +70,7 @@ def predict_single(model, features_df, manifest, compute_shap=True):
     try:
         prediction = model.predict(pred_pool)[0]
     except Exception as e:
-        # Re-raise with full string to bypass Streamlit redaction if possible,
-        # or at least print it to logs clearly.
+        # Raise error with full context
         debug_info = f"Shape: {features_df.shape}, CatIndices: {cat_indices}"
         raise RuntimeError(f"CatBoost Prediction Failed: {str(e)} | Debug: {debug_info}") from e
     
