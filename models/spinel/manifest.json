@@ -63,22 +63,22 @@
             "bandgap_type"
         ],
         "categorical": [
+            "morphology",
             "bandgap_type",
-            "synthesis_method",
             "space_group",
             "crystal_structure",
-            "morphology",
+            "sample_form",
             "phase_purity",
-            "sample_form"
+            "synthesis_method"
         ],
         "categorical_indices": [
+            2,
             28,
-            3,
             1,
             0,
-            2,
+            5,
             6,
-            5
+            3
         ]
     },
     "performance": {
