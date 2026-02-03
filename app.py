@@ -209,23 +209,54 @@ if page == "Single Prediction":
     st.markdown("**Quick Examples:**")
     col_ex1, col_ex2, col_ex3 = st.columns(3)
     
+    # --- State Initialization & Example Helpers ---
+    
+    # Initialize session state for inputs if not present
+    if 'k_A_elem' not in st.session_state:
+        st.session_state.k_A_elem = "Cs" if current_model_key == 'perovskite' else "Mg"
+    if 'k_B_elem' not in st.session_state:
+        st.session_state.k_B_elem = "Pb" if current_model_key == 'perovskite' else "Al"
+    if 'k_X_elem' not in st.session_state:
+        st.session_state.k_X_elem = "I" if current_model_key == 'perovskite' else "O"
+        
+    if 'k_synth_method' not in st.session_state: st.session_state.k_synth_method = "Blank"
+    if 'k_morphology' not in st.session_state: st.session_state.k_morphology = "Blank"
+    if 'k_sample_form' not in st.session_state: st.session_state.k_sample_form = "Blank"
+    if 'k_crystal_struct' not in st.session_state: st.session_state.k_crystal_struct = "Blank"
+    if 'k_bandgap_type' not in st.session_state: st.session_state.k_bandgap_type = "Blank"
+    
+    # Helper to bulk update state
+    def set_inputs(A, B, X, method="Blank", morph="Blank", form="Blank"):
+        st.session_state.k_A_elem = A
+        st.session_state.k_B_elem = B
+        st.session_state.k_X_elem = X
+        st.session_state.k_synth_method = method
+        st.session_state.k_morphology = morph
+        st.session_state.k_sample_form = form
+        # Reset others to Blank to avoid carry-over
+        st.session_state.k_crystal_struct = "Blank"
+        st.session_state.k_bandgap_type = "Blank"
+
     if current_model_key == 'perovskite':
         with col_ex1:
-            if st.button("Example: CsPbI₃", use_container_width=True): st.session_state.example = "CsPbI3"
+            if st.button("Example: CsPbI₃", use_container_width=True): 
+                set_inputs("Cs", "Pb", "I")
         with col_ex2:
-            if st.button("Example: FAPbBr₃", use_container_width=True): st.session_state.example = "FAPbBr3"
+            if st.button("Example: FAPbBr₃", use_container_width=True): 
+                set_inputs("FA", "Pb", "Br")
         with col_ex3:
-            if st.button("Example: MASnI₃", use_container_width=True): st.session_state.example = "MASnI3"
+            if st.button("Example: MASnI₃", use_container_width=True): 
+                set_inputs("MA", "Sn", "I")
     else: # Spinel
         with col_ex1:
             if st.button("ZnFe₂O₄ (Combustion)", use_container_width=True, help="High bandgap example (~4.0 eV)"): 
-                st.session_state.example = "ZnFe2O4_High"
+                set_inputs("Zn", "Fe", "O", method="combustion", form="nanoparticles")
         with col_ex2:
             if st.button("ZnFe₂O₄ (Precipitation)", use_container_width=True, help="Low bandgap example (~1.96 eV)"): 
-                st.session_state.example = "ZnFe2O4_Low"
+                set_inputs("Zn", "Fe", "O", method="precipitation", form="powder", morph="Nanoscale")
         with col_ex3:
             if st.button("MgFe₂O₄ (Default)", use_container_width=True, help="Typical Ferrite (~2.3 eV)"): 
-                st.session_state.example = "MgFe2O4"
+                set_inputs("Mg", "Fe", "O")
     
     st.markdown("---")
     
@@ -239,69 +270,40 @@ if page == "Single Prediction":
         with st.container():
             st.markdown("#### Composition (Required)")
             
-            # Defaults
-            if current_model_key == 'perovskite':
-                default_A, default_B, default_X = "Cs", "Pb", "I"
-                default_A_ox, default_B_ox, default_X_ox = 1, 2, -1
-            else:
-                default_A, default_B, default_X = "Mg", "Al", "O" # X is unused/fixed
-            # Check for example
-            default_A_ox, default_B_ox, default_X_ox = 2, 3, -2
-            default_synth_method = "Blank"
-            default_morphology = "Blank"
-            default_sample_form = "Blank"
-            
-            if 'example' in st.session_state:
-                ex = st.session_state.example
-                
-                # Perovskite Examples
-                if ex == "CsPbI3": default_A, default_B, default_X = "Cs", "Pb", "I"
-                elif ex == "FAPbBr3": default_A, default_B, default_X = "FA", "Pb", "Br"
-                elif ex == "MASnI3": default_A, default_B, default_X = "MA", "Sn", "I"
-                
-                # Spinel Examples
-                elif ex == "ZnFe2O4_High": 
-                    default_A, default_B = "Zn", "Fe"
-                    default_synth_method = "combustion"
-                    default_sample_form = "nanoparticles"
-                    # Morphology left as Blank for this case as per test script
-                elif ex == "ZnFe2O4_Low": 
-                    default_A, default_B = "Zn", "Fe"
-                    default_synth_method = "precipitation"
-                    default_sample_form = "powder"
-                    default_morphology = "Nanoscale"
-                elif ex == "MgFe2O4": 
-                    default_A, default_B = "Mg", "Fe"
-                    
-                del st.session_state.example
+            # Oxidation Defaults
+            default_A_ox = 1 if current_model_key=='perovskite' else 2
+            default_B_ox = 2 if current_model_key=='perovskite' else 3
+            default_X_ox = -1 if current_model_key=='perovskite' else -2
             
             if current_model_key == 'perovskite':
                 col_a, col_b, col_x = st.columns(3)
                 with col_a:
                     st.caption("A-site element")
-                    A_elem = st.text_input("A-site", value=default_A, label_visibility="collapsed")
+                    A_elem = st.text_input("A-site", key="k_A_elem", label_visibility="collapsed")
                     A_ox = st.number_input("A oxidation state", value=default_A_ox, step=1)
                 with col_b:
                     st.caption("B-site element")
-                    B_elem = st.text_input("B-site", value=default_B, label_visibility="collapsed")
+                    B_elem = st.text_input("B-site", key="k_B_elem", label_visibility="collapsed")
                     B_ox = st.number_input("B oxidation state", value=default_B_ox, step=1)
                 with col_x:
                     st.caption("X-site element")
-                    X_elem = st.text_input("X-site", value=default_X, label_visibility="collapsed")
+                    X_elem = st.text_input("X-site", key="k_X_elem", label_visibility="collapsed")
                     X_ox = st.number_input("X oxidation state", value=default_X_ox, step=1)
             else: # Spinel
                 col_a, col_b, col_x = st.columns(3)
                 with col_a:
                     st.caption("A-site element (Tetrahedral)")
-                    A_elem = st.text_input("A-site", value=default_A, label_visibility="collapsed")
+                    A_elem = st.text_input("A-site", key="k_A_elem", label_visibility="collapsed")
                     A_ox = st.number_input("A oxidation", value=2, step=1)
                 with col_b:
                     st.caption("B-site element (Octahedral)")
-                    B_elem = st.text_input("B-site", value=default_B, label_visibility="collapsed")
+                    B_elem = st.text_input("B-site", key="k_B_elem", label_visibility="collapsed")
                     B_ox = st.number_input("B oxidation", value=3, step=1)
                 with col_x:
                     st.caption("X-site element (Anion)")
-                    X_elem = st.text_input("X-site", value="O", disabled=True, label_visibility="collapsed")
+                    # X is fixed to O for Spinel, but kept in state for consistency
+                    # If we disable it, we should ensure state has "O".
+                    X_elem = st.text_input("X-site", value="O", disabled=True, label_visibility="collapsed") 
                     X_ox = st.number_input("X oxidation", value=-2, disabled=True, step=1)
         
         st.markdown("---")
@@ -330,25 +332,34 @@ if page == "Single Prediction":
                      "templated synthesis", "vapor-assisted", "thin-film deposition", "vapor-phase",
                      "sol-gel", "mechanochemical", "coprecipitation", "sonochemical", "Blank"
                  ]
-                 synth_method = st.selectbox("Synthesis Method", s_methods, index=len(s_methods)-1) # Default to Blank
+                 # For Perovskite, we haven't implemented comprehensive examples for synthesis yet, 
+                 # so we can leave as default index or add keys if we want consistency.
+                 # Let's add key for consistency.
+                 if 'k_synth_method' not in st.session_state or st.session_state.k_synth_method not in s_methods:
+                     st.session_state.k_synth_method = "Blank"
+                     
+                 synth_method = st.selectbox("Synthesis Method", s_methods, key="k_synth_method")
                  
                  # Crystal Structure
-                 # cubic, orthorhombic, tetragonal, hexagonal, trigonal, rhombohedral, monoclinic, mixed-phase, triclinic, Blank
                  c_structs = [
                      "cubic", "orthorhombic", "tetragonal", "hexagonal", "trigonal", 
                      "rhombohedral", "monoclinic", "mixed-phase", "triclinic", "Blank"
                  ]
-                 crystal_struct = st.selectbox("Crystal Structure", c_structs, index=len(c_structs)-1)
+                 if 'k_crystal_struct' not in st.session_state or st.session_state.k_crystal_struct not in c_structs:
+                     st.session_state.k_crystal_struct = "Blank"
+                 crystal_struct = st.selectbox("Crystal Structure", c_structs, key="k_crystal_struct")
 
                  # Sample Form
-                 # nano, powder, crystal, film, bulk, mixed, composite, Blank
                  s_forms = ["nano", "powder", "crystal", "film", "bulk", "mixed", "composite", "Blank"]
-                 sample_form = st.selectbox("Sample Form", s_forms, index=len(s_forms)-1)
+                 if 'k_sample_form' not in st.session_state or st.session_state.k_sample_form not in s_forms:
+                     st.session_state.k_sample_form = "Blank"
+                 sample_form = st.selectbox("Sample Form", s_forms, key="k_sample_form")
                  
                  # Bandgap Type
-                 # Direct, Indirect, Blank
-                 bg_types = ["Direct", "Indirect", "Blank"] 
-                 bandgap_type = st.selectbox("Bandgap Type", bg_types, index=2)
+                 bg_types = ["Direct", "Indirect", "Blank"]
+                 if 'k_bandgap_type' not in st.session_state or st.session_state.k_bandgap_type not in bg_types:
+                     st.session_state.k_bandgap_type = "Blank"
+                 bandgap_type = st.selectbox("Bandgap Type", bg_types, key="k_bandgap_type")
                  
                  # Not used:
                  morphology = "Unknown"
@@ -358,43 +369,35 @@ if page == "Single Prediction":
                 # Spinel Inputs (User Specified)
                 
                 # Synthesis Method
-                # combustion, sol-gel, precipitation, solid-state, Other, Vapor/Physical, hydrothermal, Blank
                 spinel_methods = [
                     "combustion", "sol-gel", "precipitation", "solid-state", 
                     "Other", "Vapor/Physical", "hydrothermal", "Blank"
                 ]
-                s_m_idx = spinel_methods.index(default_synth_method) if default_synth_method in spinel_methods else len(spinel_methods)-1
-                synth_method = st.selectbox("Synthesis Method", spinel_methods, index=s_m_idx)
+                synth_method = st.selectbox("Synthesis Method", spinel_methods, key="k_synth_method")
 
                 # Morphology 
-                # Nanoscale, agglomerated, Bulk/Granular, spherical, Geometric/Shaped, Porous, mixed morphology, Blank
                 spinel_morphs = [
                     "Nanoscale", "agglomerated", "Bulk/Granular", "spherical", 
                     "Geometric/Shaped", "Porous", "mixed morphology", "Blank"
                 ]
-                morph_idx = spinel_morphs.index(default_morphology) if default_morphology in spinel_morphs else len(spinel_morphs)-1
-                morphology = st.selectbox("Morphology", spinel_morphs, index=morph_idx)
+                morphology = st.selectbox("Morphology", spinel_morphs, key="k_morphology")
                 
                 # Crystal Structure - Fixed to Cubic
                 st.text_input("Crystal Structure", value="Cubic", disabled=True)
                 crystal_struct = "Cubic"
                 
                 # Sample Form
-                # powder, nanoparticles, bulk, thin film, nanowire array, single crystal, nanocrystals, Blank
                 spinel_forms = [
                     "powder", "nanoparticles", "bulk", "thin film", 
                     "nanowire array", "single crystal", "nanocrystals", "Blank"
                 ]
-                form_idx = spinel_forms.index(default_sample_form) if default_sample_form in spinel_forms else len(spinel_forms)-1
-                sample_form = st.selectbox("Sample Form", spinel_forms, index=form_idx)
+                sample_form = st.selectbox("Sample Form", spinel_forms, key="k_sample_form")
                 
                 # Bandgap Type
-                # Direct, Indirect, Blank
                 spinel_bg_types = ["Direct", "Indirect", "Blank"]
                 bandgap_type = st.selectbox("Bandgap Type", spinel_bg_types, index=2)
                 
                 # Phase Purity
-                # Pure, Impure, blank
                 spinel_purity = ["Pure", "Impure", "Blank"]
                 phase_purity = st.selectbox("Phase Purity", spinel_purity, index=2)
 
