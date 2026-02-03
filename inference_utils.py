@@ -36,18 +36,12 @@ def load_model_pipeline(model_dir="models"):
     else:
         raise FileNotFoundError(f"No model file found in {model_dir}")
     
-    # Load encoders (optional, might not exist for Spinel if we didn't save them?)
-    # Wait, I didn't save encoders for Spinel! 
-    # The Spinel model uses CatBoost's native categorical handling.
-    # But feature_engineering.py uses encoders for 'Unknown' handling?
-    # Actually, my compute_spinel_features uses encoders.
-    # I need to save the encoders from the Spinel training or handle it differently.
-    # For now, let's make encoders optional.
-    # Load encoders (optional)
+    # Load encoders (only needed if using non-CatBoost models that require pre-encoded inputs)
+    # For CatBoost models, we pass strings directly, so this is ensuring compatibility if other models were added.
     if (model_dir / 'categorical_encoders.pkl').exists():
         encoders = joblib.load(model_dir / 'categorical_encoders.pkl')
     else:
-        encoders = {}  # Empty dict implies no encoding needed (CatBoost handles strings)
+        encoders = {}
     
     return model, manifest, encoders
 

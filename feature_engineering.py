@@ -436,7 +436,7 @@ def compute_physics_features(input_data, elements_data, encoders, manifest=None)
     
     return df
 
-def validate_composition(input_data, elements_data):
+def validate_composition(input_data, elements_data, model_type='perovskite'):
     """
     Validate composition and return warnings.
     
@@ -462,11 +462,12 @@ def validate_composition(input_data, elements_data):
         return is_valid, warnings
     
     # Check common combinations (warnings only, not errors)
-    if B_elem not in ['Pb', 'Sn', 'Ge', 'Ti', 'Zr', 'Cu', 'Bi', 'Sb']:
-        warnings.append(f"B-site {B_elem} is uncommon for perovskites (model trained primarily on Pb, Sn, Ge, Ti)")
-    
-    if X_elem not in ['I', 'Br', 'Cl', 'F', 'O']:
-        warnings.append(f"X-site {X_elem} is uncommon (model trained primarily on I, Br, Cl, F, O)")
+    if model_type == 'perovskite':
+        if B_elem not in ['Pb', 'Sn', 'Ge', 'Ti', 'Zr', 'Cu', 'Bi', 'Sb']:
+            warnings.append(f"B-site {B_elem} is uncommon for perovskites (model trained primarily on Pb, Sn, Ge, Ti)")
+        
+        if X_elem not in ['I', 'Br', 'Cl', 'F', 'O']:
+            warnings.append(f"X-site {X_elem} is uncommon (model trained primarily on I, Br, Cl, F, O)")
     
     return is_valid, warnings
 

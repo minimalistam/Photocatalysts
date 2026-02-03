@@ -8,7 +8,6 @@ Features:
 - Batch prediction from CSV/Excel
 - Auto-computed physics features
 - Model interpretability
-- User feedback collection
 
 Author: Amir Mahboud
 Version: v1.0
@@ -41,7 +40,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for scientific look
+# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -96,7 +95,7 @@ def check_password():
         st.text_input(
             "Password", type="password", on_change=password_entered, key="password"
         )
-        st.error("😕 Password incorrect")
+        st.error("Password incorrect")
         return False
     else:
         # Password correct.
@@ -423,7 +422,7 @@ if page == "Single Prediction":
                 }
                 
                 # Validate Composition
-                is_valid, warnings = validate_composition(input_data, ELEMENTS_DATA)
+                is_valid, warnings = validate_composition(input_data, ELEMENTS_DATA, model_type=current_model_key)
                 
                 if not is_valid:
                     for w in warnings:
@@ -552,12 +551,6 @@ elif page == "Batch Prediction":
                 
                 csv = results_df.to_csv(index=False)
                 st.download_button("Download Results", csv, "batch_results.csv", "text/csv")
-
-# ============================================================================
-# PAGE: FEEDBACK & VALIDATION
-# ============================================================================
-
-
 
 # ============================================================================
 # PAGE: ABOUT
