@@ -422,11 +422,17 @@ if page == "Single Prediction":
                     'phase_purity': clean_cat(phase_purity)
                 }
                 
-                # Validate (Basic)
-                is_valid = True
-                if not A_elem or not B_elem:
-                    st.error("Please enter elements.")
-                    is_valid = False
+                # Validate Composition
+                is_valid, warnings = validate_composition(input_data, ELEMENTS_DATA)
+                
+                if not is_valid:
+                    for w in warnings:
+                        st.error(w)
+                    st.stop()
+                
+                # Show non-critical warnings
+                for w in warnings:
+                    st.warning(w)
                 
                 if is_valid:
                     # Compute features
